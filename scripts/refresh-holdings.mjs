@@ -70,6 +70,7 @@ function describe(filePath, fallback) {
 function originFor(kind) {
   switch (kind) {
     case "Skill": return "Repo template";
+    case "Plugin": return "Bundle";
     case "Command": return "Workflow prompt";
     case "Agent": return "Subagent persona";
     case "Rule": return "House rules";
@@ -87,7 +88,8 @@ for (const name of safeList(skillsDir)) {
   if (!statSync(dir).isDirectory()) continue;
   const skillMd = join(dir, "SKILL.md");
   if (!existsSync(skillMd)) continue;
-  const files = walk(dir, dir, []).sort();
+  const rest = walk(dir, dir, []).filter(f => f !== "SKILL.md").sort();
+  const files = ["SKILL.md", ...rest];
   out.push({
     kind: "Skill",
     name,
@@ -95,6 +97,39 @@ for (const name of safeList(skillsDir)) {
     path: `skills/${name}/`,
     origin: originFor("Skill"),
     description: describe(skillMd, `Skill folder: ${name}`),
+    files
+  });
+}
+
+// Plugins: one entry per folder under ./plugins, optionally with a plugin.json manifest.
+// A plugin bundles any mix of skills/, agents/, commands/, rules/, hooks/ inside itself.
+const pluginsDir = join(ROOT, "plugins");
+for (const name of safeList(pluginsDir)) {
+  const dir = join(pluginsDir, name);
+  if (!statSync(dir).isDirectory()) continue;
+  const rest = walk(dir, dir, []).filter(f => f !== "plugin.json").sort();
+  const files = ["plugin.json", ...rest];
+  let description = "";
+  const manifestPath = join(dir, "plugin.json");
+  if (existsSync(manifestPath)) {
+    try {
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      description = typeof manifest.description === "string" ? manifest.description : "";
+    } catch (err) {
+      console.warn(`plugins/${name}/plugin.json is not valid JSON: ${err.message}`);
+    }
+  }
+  if (!description) {
+    const readmePath = join(dir, "README.md");
+    if (existsSync(readmePath)) description = firstSentence(readFileSync(readmePath, "utf8"));
+  }
+  out.push({
+    kind: "Plugin",
+    name,
+    folder: "plugins",
+    path: `plugins/${name}/`,
+    origin: originFor("Plugin"),
+    description: description || `Plugin bundle: ${name}`,
     files
   });
 }
@@ -129,7 +164,7 @@ for (const { kind, folder, ext } of singleFile) {
 
 out.sort((a, b) => {
   if (a.kind !== b.kind) {
-    const order = ["Skill", "Command", "Agent", "Rule", "Hook"];
+    const order = ["Skill", "Plugin", "Command", "Agent", "Rule", "Hook"];
     return order.indexOf(a.kind) - order.indexOf(b.kind);
   }
   return a.name.localeCompare(b.name);

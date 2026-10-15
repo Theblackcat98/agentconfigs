@@ -12,6 +12,35 @@
     ]
   },
   {
+    "kind": "Plugin",
+    "name": "review-kit",
+    "folder": "plugins",
+    "path": "plugins/review-kit/",
+    "origin": "Bundle",
+    "description": "A review bundle: a read-only reviewer agent, a /review command, and a hook that guards force-pushes.",
+    "files": [
+      "plugin.json",
+      "agents/code-reviewer.md",
+      "commands/review.md",
+      "hooks/pre-push-guard.sh"
+    ]
+  },
+  {
+    "kind": "Plugin",
+    "name": "starter-pack",
+    "folder": "plugins",
+    "path": "plugins/starter-pack/",
+    "origin": "Bundle",
+    "description": "Onboarding bundle: a getting-started skill, session house rules, and a /setup command.",
+    "files": [
+      "plugin.json",
+      "commands/setup.md",
+      "rules/AGENTS.md",
+      "skills/getting-started/SKILL.md",
+      "skills/getting-started/references/first-run.md"
+    ]
+  },
+  {
     "kind": "Command",
     "name": "does-something",
     "folder": "commands",

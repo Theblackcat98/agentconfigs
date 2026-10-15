@@ -14,6 +14,8 @@ Three kinds of cargo, all plain text:
 
 - **Skills** — a folder with a `SKILL.md` and its support files, loaded on demand when a task
   matches the description. This is the primary thing the project stores and showcases.
+- **Plugins** — folders that bundle any mix of the other cargo (e.g. a skill plus a hook and a
+  command) into one takeable unit, described by a `plugin.json` manifest.
 - **Agent configs** — small markdown files that give a subagent a job and a mode (read/write,
   toolset, scope).
 - **Agent prompts** — the house rules (`./rules/AGENTS.md`) read at the start of a session, the

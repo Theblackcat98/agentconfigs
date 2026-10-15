@@ -1,0 +1,6 @@
+{
+  "name": "review-kit",
+  "version": "0.1.0",
+  "author": "Theblackcat98",
+  "description": "A review bundle: a read-only reviewer agent, a /review command, and a hook that guards force-pushes."
+}

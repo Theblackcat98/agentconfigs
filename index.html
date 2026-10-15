@@ -589,6 +589,13 @@ input, select {
           <p>Deterministic lifecycle scripts plus a simple rule: this is a vetted personal shelf, not a marketplace. Listing is not a claim of authorship.</p>
         </div>
       </div>
+      <div class="card">
+        <div>
+          <div class="card-tag">05 / Bundles</div>
+          <strong>Plugins (`./plugins`)</strong>
+          <p>Folders that package any mix of the other cargo — several skills, or a skill with a hook and a command — as one takeable unit, described by a `plugin.json` manifest.</p>
+        </div>
+      </div>
     </div>
 
     <div class="tree-card">
@@ -613,6 +620,7 @@ input, select {
         <div class="filter-tabs" id="filterTabs">
           <button type="button" class="filter-btn active" data-kind="all">All</button>
           <button type="button" class="filter-btn" data-kind="Skill">Skills</button>
+          <button type="button" class="filter-btn" data-kind="Plugin">Plugins</button>
           <button type="button" class="filter-btn" data-kind="Command">Commands</button>
           <button type="button" class="filter-btn" data-kind="Agent">Agents</button>
           <button type="button" class="filter-btn" data-kind="Rule">Rules</button>
@@ -706,9 +714,10 @@ input, select {
   }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  const KIND_ORDER = ["Skill", "Command", "Agent", "Rule", "Hook"];
+  const KIND_ORDER = ["Skill", "Plugin", "Command", "Agent", "Rule", "Hook"];
   const FOLDER_NOTES = {
     skills: "# On-demand capability folders",
+    plugins: "# Bundles of other cargo",
     agents: "# Scoped subagent personas & modes",
     commands: "# Reusable workflow prompts",
     rules: "# Session-start house rules",
@@ -716,6 +725,7 @@ input, select {
   };
   const FOLDER_KINDS = {
     skills: "Skill",
+    plugins: "Plugin",
     agents: "Agent",
     commands: "Command",
     rules: "Rule",
@@ -747,7 +757,7 @@ input, select {
         const last = i === items.length - 1;
         const node = last ? "└── " : "├── ";
         const tail = last ? inner + "    " : inner + "│   ";
-        if (item.kind === "Skill") {
+        if (item.kind === "Skill" || item.kind === "Plugin") {
           lines.push(`${inner}${node}<span class="hl">${escapeHtml(item.name)}/</span>`);
           item.files.forEach((f, fi) => {
             const c = fi === item.files.length - 1 ? "└── " : "├── ";
@@ -776,8 +786,10 @@ input, select {
     el.innerHTML = sorted.map((item) => {
       const url = item.kind === "Skill"
         ? `./${item.path}${item.files[0]}`
-        : `./${item.path}`;
-      const label = item.kind === "Skill" ? item.name : (item.files[0] || item.path);
+        : item.kind === "Plugin"
+          ? `./${item.path}plugin.json`
+          : `./${item.path}`;
+      const label = item.kind === "Skill" || item.kind === "Plugin" ? item.name : (item.files[0] || item.path);
       return `<a href="${escapeAttr(url)}">${escapeHtml(label)}</a>`;
     }).join(" · ");
   }
@@ -971,7 +983,7 @@ input, select {
     const rawName = (skillInput.value || "").trim() || "<name>";
     const matched = holdingsData.find(h => h.name === rawName);
     const folder = matched ? matched.folder : "skills";
-    const isDir = folder === "skills";
+    const isDir = folder === "skills" || folder === "plugins";
     const ext = folder === "hooks" ? ".sh" : ".md";
 
     const baseMap = {
@@ -993,8 +1005,18 @@ input, select {
     } else {
       const repoOrigin = window.location.origin + window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
       if (isDir) {
+        // Folder-based holdings fetch every file so the copy is complete.
         const srcPath = matched ? matched.path : `skills/${rawName}/`;
-        cmdOutput.textContent = `mkdir -p ${destBase}/${rawName} && curl -fsSL ${repoOrigin}/${srcPath}SKILL.md -o ${destBase}/${rawName}/SKILL.md`;
+        const files = (matched && matched.files.length ? matched.files : ["SKILL.md"]);
+        const subdirs = [...new Set(files.map(f => f.includes("/") ? f.slice(0, f.lastIndexOf("/")) : "").filter(Boolean))];
+        const parts = [`mkdir -p ${destBase}/${rawName}`];
+        if (subdirs.length) {
+          parts.push(`mkdir -p ${subdirs.map(d => `${destBase}/${rawName}/${d}`).join(" ")}`);
+        }
+        for (const f of files) {
+          parts.push(`curl -fsSL ${repoOrigin}/${srcPath}${f} -o ${destBase}/${rawName}/${f}`);
+        }
+        cmdOutput.textContent = parts.join(" && \\\n  ");
       } else {
         const srcFile = matched ? matched.path : `${folder}/${rawName}${ext}`;
         const fileName = srcFile.split("/").pop();

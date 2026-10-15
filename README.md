@@ -10,9 +10,22 @@ that lets you browse, preview, and copy them out.
 
 ## Cargo folders
 
+A **plugin** is a bundle: a folder under `plugins/` containing any mix of the other kinds,
+mirroring the repo layout inside itself, plus a `plugin.json` manifest:
+
+```
+plugins/
+  review-kit/
+    plugin.json                # name, version, description
+    agents/code-reviewer.md
+    commands/review.md
+    hooks/pre-push-guard.sh
+```
+
 | Folder        | Kind      | Form                                             |
 | ------------- | --------- | ------------------------------------------------ |
 | `skills/`     | Skill     | A folder with a `SKILL.md` and support files.    |
+| `plugins/`    | Plugin    | A folder bundling any mix of the other kinds, with a `plugin.json` manifest. |
 | `agents/`     | Agent     | A single `.md` file describing a subagent role.  |
 | `commands/`   | Command   | A single `.md` file for a slash-command prompt.  |
 | `rules/`      | Rule      | A single `.md` file (typically `AGENTS.md`).     |
