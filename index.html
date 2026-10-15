@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agentconfigs — plain-text agent configurations, stored and shared</title>
+<style>
+@font-face {
+  font-family: "General Sans";
+  src: url("./assets/general-sans-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --ground: #f3f4f1;
+  --ground-2: #e8eae4;
+  --ground-3: #dde0d8;
+  --ink: #121417;
+  --ink-2: #3a3f46;
+  --accent: #2f5d4f;
+  --accent-ink: #f3f4f1;
+  --gap: 8px;
+  --margin: 10px;
+  --radius: 0px;
+  --maxw: 1440px;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: "General Sans", system-ui, -apple-system, sans-serif;
+  background: var(--ground);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  gap: var(--gap);
+  padding: var(--margin);
+  max-width: var(--maxw);
+  margin: 0 auto;
+}
+
+.tile {
+  background: var(--ground-2);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tile--ground { background: var(--ground); }
+.tile--ink { background: var(--ink); color: var(--ground); }
+.tile--accent { background: var(--accent); color: var(--accent-ink); }
+
+/* spans */
+.s-4 { grid-column: span 4; }
+.s-6 { grid-column: span 6; }
+.s-8 { grid-column: span 8; }
+.s-12 { grid-column: span 12; }
+.r-2 { grid-row: span 2; }
+.r-3 { grid-row: span 3; }
+.r-4 { grid-row: span 4; }
+
+.holdings { display: grid; gap: 10px; }
+.holding { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: start; padding: 16px 12px; background: var(--ground); }
+.holding:nth-child(odd) { background: var(--ground-2); }
+.holding-name { font-weight: 600; }
+.holding-kind { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+.holding-path { font-size: 0.875rem; color: var(--ink-2); font-family: inherit; grid-column: 1 / -1; }
+.holding-files { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1 / -1; }
+.holding-files span { background: var(--ground-3); padding: 2px 8px; font-size: 0.8rem; }
+.tile--ink .holding, .tile--accent .holding { border-top-color: rgba(243,244,241,0.18); }
+.tile--ink .holding-files span, .tile--accent .holding-files span { background: rgba(255,255,255,0.12); color: inherit; }
+
+.tile h1, .tile h2, .tile h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.tile h1 { font-size: clamp(2.2rem, 6vw, 4.6rem); }
+.tile h2 { font-size: clamp(1.5rem, 3vw, 2.4rem); }
+.tile h3 { font-size: 1.15rem; font-weight: 500; }
+
+.tile p, .tile li { margin: 0; font-size: 1rem; line-height: 1.5; }
+.tile .small { font-size: 0.875rem; color: var(--ink-2); }
+.tile--ink .small, .tile--accent .small { color: rgba(243,244,241,0.75); }
+
+.eyebrow-none { /* intentionally no eyebrows */ }
+
+.stat {
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  margin: 0;
+}
+
+.code {
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: var(--ground-3);
+  padding: 12px 14px;
+  border: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+
+.tile--ink .code { background: rgba(255,255,255,0.08); color: var(--ground); }
+.tile--accent .code { background: rgba(0,0,0,0.18); color: var(--accent-ink); }
+
+.form-row { display: flex; flex-direction: column; gap: 8px; }
+input, select, button {
+  font: inherit;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--ground);
+  color: var(--ink);
+}
+.tile--ink input, .tile--ink select { background: rgba(255,255,255,0.12); color: var(--ground); }
+.tile--accent input, .tile--accent select { background: rgba(255,255,255,0.18); color: var(--accent-ink); }
+button { background: var(--accent); color: var(--accent-ink); cursor: pointer; font-weight: 600; }
+.tile--accent button { background: var(--ground); color: var(--accent); }
+.tile--ink button { background: var(--ground); color: var(--ink); }
+
+ul { padding-left: 20px; margin: 0; }
+ul li { margin: 4px 0; }
+
+.links { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.links a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+.nowrap { white-space: nowrap; }
+
+@media (max-width: 800px) {
+  .board { grid-template-columns: repeat(4, 1fr); }
+  .s-6, .s-8, .s-12 { grid-column: span 4; }
+  .s-4 { grid-column: span 4; }
+}
+
+@media (max-width: 520px) {
+  .board { grid-template-columns: repeat(2, 1fr); padding: 8px; }
+  .s-4, .s-6, .s-8, .s-12 { grid-column: span 2; }
+  .r-3, .r-4 { grid-row: span 2; }
+}
+</style>
+</head>
+<body>
+
+<main class="board" aria-label="agentconfigs tile board">
+
+  <section class="tile tile--ink s-8 r-4">
+    <div>
+      <h1>agentconfigs</h1>
+      <p style="margin-top:12px;font-size:1.15rem;max-width:46ch;">A personal, growing collection of coding-agent configurations kept as plain files: the skills an agent loads, the subagents it can call, the prompts it reads.</p>
+    </div>
+    <div>
+      <p class="small">Stored and showcased here. Not a marketplace. Nothing here is claimed as mine.</p>
+    </div>
+  </section>
+
+  <section class="tile tile--accent s-4 r-4">
+    <div>
+      <p class="stat">1</p>
+      <h2>resident skill</h2>
+    </div>
+    <p class="small">design-taste-frontend (tasteskill v2, MIT). Vetted by use, stored by copy.</p>
+  </section>
+
+  <section class="tile s-6 r-3">
+    <div>
+      <h2>Take one</h2>
+      <p class="small">Generate the copy command for a skill, then run it in your own project.</p>
+    </div>
+    <div class="form-row">
+      <label for="skill">Skill folder name</label>
+      <input id="skill" type="text" value="design-taste-frontend" autocomplete="off" spellcheck="false">
+      <label for="dest">Destination directory</label>
+      <select id="dest">
+        <option value="./skills">./skills (project)</option>
+        <option value="~/.config/agent/skills">~/.config/agent/skills (global)</option>
+      </select>
+      <code class="code" id="cmd">cp -r skills/design-taste-frontend ./skills/</code>
+      <button id="copy" type="button">Copy command</button>
+      <p class="small" id="status" aria-live="polite"></p>
+      <noscript><code class="code">cp -r skills/&lt;name&gt; &lt;your-agent-skills-dir&gt;/</code></noscript>
+    </div>
+  </section>
+
+  <section class="tile s-6 r-3">
+    <div>
+      <h2>What it stores</h2>
+    </div>
+    <ul>
+      <li><strong>Skills</strong> — a folder with a <code>SKILL.md</code> and its support files, loaded on demand.</li>
+      <li><strong>Agent configs</strong> — small markdown files that give a subagent a job and a mode.</li>
+      <li><strong>Agent prompts</strong> — house rules and command prompts read at the start of a session.</li>
+    </ul>
+    <p class="small">All plain text. Nothing compiles, nothing installs.</p>
+  </section>
+
+  <section class="tile tile--ground s-4 r-3">
+    <div>
+      <h2>How it is stored</h2>
+    </div>
+    <ul>
+      <li>In this project's own folders, not in any agent config directory.</li>
+      <li>Nothing is installed into an agent harness.</li>
+      <li>Nothing runs in the background.</li>
+      <li>Read before you take.</li>
+    </ul>
+  </section>
+
+  <section class="tile s-4 r-3">
+    <div>
+      <h2>Who it is for</h2>
+    </div>
+    <p>Developers who run coding agents in any harness and prefer reading a file over installing a package.</p>
+    <p class="small">A personal rule against <em>npm install</em> is mine, not this project's.</p>
+  </section>
+
+  <section class="tile s-4 r-3">
+    <div>
+      <h2>Not a marketplace</h2>
+    </div>
+    <p>I list skills I have used and vetted. Listing is not a claim of authorship, and nothing here is for sale.</p>
+  </section>
+
+  <section class="tile s-12 r-3">
+    <div>
+      <h2>Stored here</h2>
+      <p class="small">A small manifest in this page renders the holding. Folders stay in place; nothing is installed.</p>
+    </div>
+    <div id="holdings" class="holdings" aria-live="polite"></div>
+    <div class="links">
+      <a href="./skills/example-skill/SKILL.md">Open example SKILL.md</a>
+      <a href="./commands/does-something.md">Open example command</a>
+      <a href="./.opencode/skills/design-taste-frontend/SKILL.md">Open resident SKILL.md</a>
+    </div>
+  </section>
+
+  <section class="tile tile--ink s-12 r-2">
+    <div>
+      <h2>Read before you take.</h2>
+      <p class="small" style="margin-top:8px;">agentconfigs — plain files, copied by hand. Commands on this page are samples; wire them to your own layout before launch.</p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  const skill = document.getElementById("skill");
+  const dest = document.getElementById("dest");
+  const cmd = document.getElementById("cmd");
+  const copyBtn = document.getElementById("copy");
+  const status = document.getElementById("status");
+
+  function update() {
+    const name = (skill.value || "").trim() || "<name>";
+    const d = dest.value;
+    cmd.textContent = "cp -r skills/" + name + " " + d + "/";
+  }
+
+  skill.addEventListener("input", update);
+  dest.addEventListener("change", update);
+  update();
+
+  copyBtn.addEventListener("click", async function () {
+    try {
+      await navigator.clipboard.writeText(cmd.textContent);
+      status.textContent = "Copied.";
+    } catch (e) {
+      // Fallback for file:// or insecure contexts.
+      const range = document.createRange();
+      range.selectNode(cmd);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      try { document.execCommand("copy"); status.textContent = "Copied."; }
+      catch (err) { status.textContent = "Select the command and copy it manually."; }
+      sel.removeAllRanges();
+    }
+  });
+
+  // Render the stored holding as a small catalogue. The manifest is hand-edited
+  // until a real build step (if ever) generates it from the filesystem.
+  const holdings = document.getElementById("holdings");
+  const holdingData = [
+    { kind: "Skill", name: "example-skill", path: "skills/example-skill/", files: ["SKILL.md", "references/doc.md"] },
+    { kind: "Command", name: "does-something", path: "commands/does-something.md", files: ["does-something.md"] },
+    { kind: "Skill", name: "design-taste-frontend", path: ".opencode/skills/design-taste-frontend/", files: ["SKILL.md", "README.md", "assets/", "references/", "scripts/"] }
+  ];
+  holdings.innerHTML = holdingData.map(function (item) {
+    return [
+      '<article class="holding">',
+        '<div>',
+          '<div class="holding-kind">' + item.kind + '</div>',
+          '<div class="holding-name">' + item.name + '</div>',
+        '</div>',
+        '<div></div>',
+        '<div class="holding-path">' + item.path + '</div>',
+        '<div class="holding-files">' + item.files.map(function (f) { return '<span>' + f + '</span>'; }).join("") + '</div>',
+      '</article>'
+    ].join("");
+  }).join("");
+})();
+</script>
+
+</body>
+</html>
