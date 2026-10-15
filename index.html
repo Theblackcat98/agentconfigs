@@ -770,8 +770,8 @@ input, select {
 
   // Attempt to fetch live file when hosted on GitHub Pages; fallback to inline preview
   async function loadFileContent(item, fileKey) {
-    const fallback = item.files[fileKey];
-    detailPreview.textContent = fallback;
+    // Embedded previews are not trusted; the file on disk is authoritative.
+    const fallback = "(Preview requires the page to be served over HTTP; open raw file.)";
 
     const relativeUrl = item.path.endsWith(".md") || item.path.endsWith(".sh")
       ? "./" + item.path
@@ -779,18 +779,25 @@ input, select {
 
     detailRawLink.href = relativeUrl;
 
-    if (window.location.protocol.startsWith("http")) {
-      try {
-        const res = await fetch(relativeUrl, { cache: "no-cache" });
-        if (res.ok) {
-          const text = await res.text();
-          if (text && !text.trim().startsWith("<!DOCTYPE html>")) {
-            detailPreview.textContent = text;
-          }
+    if (!window.location.protocol.startsWith("http")) {
+      detailPreview.textContent = fallback || "/** Offline: preview from embedded file only. **/";
+      return;
+    }
+
+    try {
+      const res = await fetch(relativeUrl, { cache: "no-cache" });
+      if (res.ok) {
+        const text = await res.text();
+        if (text.trim().startsWith("<!DOCTYPE html>")) {
+          detailPreview.textContent = fallback || "(Unable to preview: server returned HTML.)";
+        } else {
+          detailPreview.textContent = text.trim() ? text : "(Empty file)";
         }
-      } catch (_) {
-        // Keep embedded preview on offline or missing file
+      } else {
+        detailPreview.textContent = fallback || "(Unable to preview: file not found.)";
       }
+    } catch (_) {
+      detailPreview.textContent = fallback || "(Unable to preview: request failed.)";
     }
   }
 
