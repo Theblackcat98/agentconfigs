@@ -3,325 +3,953 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>agentconfigs — plain-text agent configurations, stored and shared</title>
+<title>agentconfigs — plain-text cargo for coding agents</title>
 <style>
 @font-face {
   font-family: "General Sans";
   src: url("./assets/general-sans-var.woff2") format("woff2");
   font-weight: 100 900;
-  font-style: normal;
   font-display: swap;
 }
 
 :root {
-  --ground: #f3f4f1;
-  --ground-2: #e8eae4;
-  --ground-3: #dde0d8;
-  --ink: #121417;
-  --ink-2: #3a3f46;
-  --accent: #2f5d4f;
-  --accent-ink: #f3f4f1;
-  --gap: 8px;
-  --margin: 10px;
-  --radius: 0px;
-  --maxw: 1440px;
+  --ground: #111317;
+  --ground-2: #1b1e24;
+  --ground-3: #252932;
+  --border: #2a2f3a;
+  --ink: #f2f4f7;
+  --ink-2: #aab1bc;
+  --ink-3: #6e7683;
+  --accent: #d4b28c;
+  --accent-dim: rgba(212, 178, 140, 0.14);
+  --accent-ink: #111317;
+  --mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: "General Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
-
 html, body { margin: 0; padding: 0; }
 
 body {
-  font-family: "General Sans", system-ui, -apple-system, sans-serif;
+  font-family: var(--sans);
   background: var(--ground);
   color: var(--ink);
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
-.board {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-auto-flow: dense;
-  gap: var(--gap);
-  padding: var(--margin);
-  max-width: var(--maxw);
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+a:hover { border-bottom-color: var(--accent); }
+
+/* --- MONUMENT HEADER --- */
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px clamp(16px, 3vw, 40px);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.header-bar .status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.monument-wrap {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 3vw, 40px) 20px;
+}
+
+.monument {
+  font-size: clamp(3.2rem, 15vw, 10.5rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.82;
+  margin: 0;
+  color: var(--ink);
+}
+.monument small {
+  display: block;
+  font-size: clamp(1.05rem, 2.2vw, 1.65rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ink-2);
+  margin-top: 18px;
+  line-height: 1.3;
+  max-width: 38ch;
+}
+
+/* --- MANIFESTO & REPO STRUCTURE --- */
+.wrap {
+  padding: 0 clamp(16px, 3vw, 40px) 84px;
+  max-width: 1380px;
   margin: 0 auto;
 }
 
-.tile {
+.intro-grid {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  gap: 20px;
+  margin-top: 28px;
+}
+@media (max-width: 960px) {
+  .intro-grid { grid-template-columns: 1fr; }
+}
+
+.manifesto-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 600px) {
+  .manifesto-cards { grid-template-columns: 1fr; }
+}
+
+.card {
   background: var(--ground-2);
-  padding: 24px 20px;
+  border: 1px solid var(--border);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 0;
-  overflow: hidden;
 }
-
-.tile--ground { background: var(--ground); }
-.tile--ink { background: var(--ink); color: var(--ground); }
-.tile--accent { background: var(--accent); color: var(--accent-ink); }
-
-/* spans */
-.s-4 { grid-column: span 4; }
-.s-6 { grid-column: span 6; }
-.s-8 { grid-column: span 8; }
-.s-12 { grid-column: span 12; }
-.r-2 { grid-row: span 2; }
-.r-3 { grid-row: span 3; }
-.r-4 { grid-row: span 4; }
-
-.holdings { display: grid; gap: 10px; }
-.holding { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: start; padding: 16px 12px; background: var(--ground); }
-.holding:nth-child(odd) { background: var(--ground-2); }
-.holding-name { font-weight: 600; }
-.holding-kind { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
-.holding-path { font-size: 0.875rem; color: var(--ink-2); font-family: inherit; grid-column: 1 / -1; }
-.holding-files { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1 / -1; }
-.holding-files span { background: var(--ground-3); padding: 2px 8px; font-size: 0.8rem; }
-.tile--ink .holding, .tile--accent .holding { border-top-color: rgba(243,244,241,0.18); }
-.tile--ink .holding-files span, .tile--accent .holding-files span { background: rgba(255,255,255,0.12); color: inherit; }
-
-.tile h1, .tile h2, .tile h3 {
+.card-tag {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.card strong {
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  display: block;
+  margin-bottom: 6px;
+}
+.card p {
   margin: 0;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 0.95;
+  font-size: 0.92rem;
+  color: var(--ink-2);
 }
 
-.tile h1 { font-size: clamp(2.2rem, 6vw, 4.6rem); }
-.tile h2 { font-size: clamp(1.5rem, 3vw, 2.4rem); }
-.tile h3 { font-size: 1.15rem; font-weight: 500; }
-
-.tile p, .tile li { margin: 0; font-size: 1rem; line-height: 1.5; }
-.tile .small { font-size: 0.875rem; color: var(--ink-2); }
-.tile--ink .small, .tile--accent .small { color: rgba(243,244,241,0.75); }
-
-.eyebrow-none { /* intentionally no eyebrows */ }
-
-.stat {
-  font-size: clamp(3rem, 8vw, 5.5rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 0.9;
-  margin: 0;
+.tree-card {
+  background: var(--ground-2);
+  border: 1px solid var(--border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
 }
-
-.code {
-  font-family: inherit;
-  font-size: 0.9rem;
-  background: var(--ground-3);
-  padding: 12px 14px;
-  border: 0;
+.tree-card pre {
+  margin: 8px 0 0;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--ink-2);
   overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  margin: 0;
+}
+.tree-card pre .hl { color: var(--ink); font-weight: 600; }
+.tree-card pre .acc { color: var(--accent); }
+.tree-card pre .dim { color: var(--ink-3); }
+
+/* --- WORKSPACE LAYOUT (CATALOGUE + INSPECTOR) --- */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.45fr);
+  gap: 24px;
+  margin-top: 40px;
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .workspace { grid-template-columns: 1fr; }
 }
 
-.tile--ink .code { background: rgba(255,255,255,0.08); color: var(--ground); }
-.tile--accent .code { background: rgba(0,0,0,0.18); color: var(--accent-ink); }
+.panel {
+  background: var(--ground-2);
+  border: 1px solid var(--border);
+  padding: 22px;
+}
 
-.form-row { display: flex; flex-direction: column; gap: 8px; }
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+h2 {
+  font-size: 1.35rem;
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.count-badge {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  background: var(--ground);
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+}
+
+/* --- FILTERS & SEARCH --- */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.search-input {
+  width: 100%;
+  background: var(--ground);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filter-btn {
+  background: var(--ground);
+  color: var(--ink-2);
+  border: 1px solid var(--border);
+  padding: 6px 11px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.filter-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+.filter-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- HOLDINGS LIST --- */
+.holdings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.holding {
+  padding: 15px 16px;
+  background: var(--ground);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.holding:hover {
+  background: var(--ground-3);
+}
+.holding.active {
+  background: var(--ground-3);
+  border-color: var(--accent);
+}
+
+.holding-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.holding-kind {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 2px 7px;
+}
+.holding-path {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+.holding-name {
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin: 6px 0 4px;
+  color: var(--ink);
+}
+.holding-desc {
+  font-size: 0.88rem;
+  color: var(--ink-2);
+  margin: 0 0 10px;
+}
+.holding-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.holding-files span {
+  font-family: var(--mono);
+  background: var(--ground-2);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
+  padding: 2px 7px;
+  font-size: 0.74rem;
+}
+
+/* --- INSPECTOR & EXTRACTION CONSOLE --- */
+.inspector-col {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.detail-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+}
+.detail-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.detail-title-row h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+.raw-link {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.meta-row code {
+  font-family: var(--mono);
+  color: var(--ink);
+}
+
+.file-tabs-label {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  margin-bottom: 8px;
+}
+
+.file-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.file-tab {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  background: var(--ground);
+  color: var(--ink-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.file-tab:hover {
+  color: var(--ink);
+}
+.file-tab.active {
+  background: var(--ground-3);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.preview-box {
+  background: var(--ground);
+  border: 1px solid var(--border);
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+/* --- TAKE ONE (EXTRACTION FORM) --- */
+.take-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .take-grid { grid-template-columns: 1fr; }
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  font-family: var(--mono);
+}
+
 input, select, button {
   font: inherit;
-  border: 0;
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
   padding: 10px 12px;
   background: var(--ground);
   color: var(--ink);
+  width: 100%;
 }
-.tile--ink input, .tile--ink select { background: rgba(255,255,255,0.12); color: var(--ground); }
-.tile--accent input, .tile--accent select { background: rgba(255,255,255,0.18); color: var(--accent-ink); }
-button { background: var(--accent); color: var(--accent-ink); cursor: pointer; font-weight: 600; }
-.tile--accent button { background: var(--ground); color: var(--accent); }
-.tile--ink button { background: var(--ground); color: var(--ink); }
-
-ul { padding-left: 20px; margin: 0; }
-ul li { margin: 4px 0; }
-
-.links { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-.links a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
-
-.nowrap { white-space: nowrap; }
-
-@media (max-width: 800px) {
-  .board { grid-template-columns: repeat(4, 1fr); }
-  .s-6, .s-8, .s-12 { grid-column: span 4; }
-  .s-4 { grid-column: span 4; }
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+input, select {
+  font-family: var(--mono);
+  font-size: 0.85rem;
 }
 
-@media (max-width: 520px) {
-  .board { grid-template-columns: repeat(2, 1fr); padding: 8px; }
-  .s-4, .s-6, .s-8, .s-12 { grid-column: span 2; }
-  .r-3, .r-4 { grid-row: span 2; }
+.cmd-box {
+  background: var(--ground);
+  border: 1px solid var(--border);
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--accent);
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 12px 0;
 }
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  width: auto;
+  padding: 10px 20px;
+  transition: opacity 0.15s ease;
+}
+.btn-primary:hover { opacity: 0.9; }
+
+.copy-status {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--accent);
+}
+
+/* --- FOOTER / ETHOS --- */
+.footer-ethos {
+  margin-top: 64px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 20px;
+  color: var(--ink-2);
+  font-size: 0.92rem;
+}
+.footer-ethos strong { color: var(--ink); }
 </style>
 </head>
 <body>
 
-<main class="board" aria-label="agentconfigs tile board">
+<header class="header-bar">
+  <div><span class="status-dot"></span>PLAIN-TEXT AGENT HARNESS CARGO</div>
+  <div>NO PACKAGES · NO DAEMONS · READ BEFORE TAKEN</div>
+</header>
 
-  <section class="tile tile--ink s-8 r-4">
-    <div>
-      <h1>agentconfigs</h1>
-      <p style="margin-top:12px;font-size:1.15rem;max-width:46ch;">A personal, growing collection of coding-agent configurations kept as plain files: the skills an agent loads, the subagents it can call, the prompts it reads.</p>
-    </div>
-    <div>
-      <p class="small">Stored and showcased here. Not a marketplace. Nothing here is claimed as mine.</p>
-    </div>
-  </section>
+<div class="monument-wrap">
+  <h1 class="monument">
+    agentconfigs
+    <small>One developer's working setup for coding agents — kept as plain files, read before taken.</small>
+  </h1>
+</div>
 
-  <section class="tile tile--accent s-4 r-4">
-    <div>
-      <p class="stat">1</p>
-      <h2>resident skill</h2>
+<main class="wrap">
+  <!-- INTENTION & REPO TREE -->
+  <div class="intro-grid">
+    <div class="manifesto-cards">
+      <div class="card">
+        <div>
+          <div class="card-tag">01 / Primary Cargo</div>
+          <strong>Skills (`./skills`)</strong>
+          <p>Folders with a <code>SKILL.md</code> and support files (`references/`, `scripts/`), loaded on demand when a task matches the description.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div>
+          <div class="card-tag">02 / Subagents</div>
+          <strong>Agent Configs (`./agents`)</strong>
+          <p>Focused markdown definitions that give a subagent a scoped role, allowed toolset, and execution mode (read-only vs. write).</p>
+        </div>
+      </div>
+      <div class="card">
+        <div>
+          <div class="card-tag">03 / Session & Commands</div>
+          <strong>Prompts (`./commands` & `./rules`)</strong>
+          <p>House rules read at the start of a session (`AGENTS.md`) and reusable slash-command prompts triggered on demand.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div>
+          <div class="card-tag">04 / Guardrails</div>
+          <strong>Hooks (`./hooks`) & Etiquette</strong>
+          <p>Deterministic lifecycle scripts plus a simple rule: this is a vetted personal shelf, not a marketplace. Listing is not a claim of authorship.</p>
+        </div>
+      </div>
     </div>
-    <p class="small">design-taste-frontend (tasteskill v2, MIT). Vetted by use, stored by copy.</p>
-  </section>
 
-  <section class="tile s-6 r-3">
-    <div>
-      <h2>Take one</h2>
-      <p class="small">Generate the copy command for a skill, then run it in your own project.</p>
+    <div class="tree-card">
+      <div class="card-tag">Repository Layout</div>
+      <strong>Harness Directory Tree</strong>
+      <pre><span class="hl">.</span>
+├── <span class="acc">skills/</span>                 <span class="dim"># On-demand capability folders</span>
+│   └── <span class="hl">example-skill/</span>
+│       ├── references/
+│       │   └── doc.md
+│       └── SKILL.md
+├── <span class="acc">agents/</span>                 <span class="dim"># Scoped subagent personas & modes</span>
+│   └── code-reviewer.md
+├── <span class="acc">commands/</span>               <span class="dim"># Reusable workflow prompts</span>
+│   └── does-something.md
+├── <span class="acc">rules/</span>                  <span class="dim"># Session-start house rules</span>
+│   └── AGENTS.md
+└── <span class="acc">hooks/</span>                  <span class="dim"># Pre/Post tool lifecycle scripts</span>
+    └── pre-tool-guard.sh</pre>
     </div>
-    <div class="form-row">
-      <label for="skill">Skill folder name</label>
-      <input id="skill" type="text" value="design-taste-frontend" autocomplete="off" spellcheck="false">
-      <label for="dest">Destination directory</label>
-      <select id="dest">
-        <option value="./skills">./skills (project)</option>
-        <option value="~/.config/agent/skills">~/.config/agent/skills (global)</option>
-      </select>
-      <code class="code" id="cmd">cp -r skills/design-taste-frontend ./skills/</code>
-      <button id="copy" type="button">Copy command</button>
-      <p class="small" id="status" aria-live="polite"></p>
-      <noscript><code class="code">cp -r skills/&lt;name&gt; &lt;your-agent-skills-dir&gt;/</code></noscript>
-    </div>
-  </section>
+  </div>
 
-  <section class="tile s-6 r-3">
-    <div>
-      <h2>What it stores</h2>
-    </div>
-    <ul>
-      <li><strong>Skills</strong> — a folder with a <code>SKILL.md</code> and its support files, loaded on demand.</li>
-      <li><strong>Agent configs</strong> — small markdown files that give a subagent a job and a mode.</li>
-      <li><strong>Agent prompts</strong> — house rules and command prompts read at the start of a session.</li>
-    </ul>
-    <p class="small">All plain text. Nothing compiles, nothing installs.</p>
-  </section>
+  <!-- INTERACTIVE WORKSPACE -->
+  <div class="workspace">
+    <!-- LEFT: STORED HOLDINGS -->
+    <section class="panel" aria-label="Stored configurations">
+      <div class="panel-header">
+        <h2>Stored here</h2>
+        <span class="count-badge" id="itemCount">0 items</span>
+      </div>
 
-  <section class="tile tile--ground s-4 r-3">
-    <div>
-      <h2>How it is stored</h2>
-    </div>
-    <ul>
-      <li>In this project's own folders, not in any agent config directory.</li>
-      <li>Nothing is installed into an agent harness.</li>
-      <li>Nothing runs in the background.</li>
-      <li>Read before you take.</li>
-    </ul>
-  </section>
+      <div class="controls">
+        <input type="search" id="searchInput" class="search-input" placeholder="Filter by name, path, or keyword..." spellcheck="false">
+        <div class="filter-tabs" id="filterTabs">
+          <button type="button" class="filter-btn active" data-kind="all">All</button>
+          <button type="button" class="filter-btn" data-kind="Skill">Skills</button>
+          <button type="button" class="filter-btn" data-kind="Command">Commands</button>
+          <button type="button" class="filter-btn" data-kind="Agent">Agents</button>
+          <button type="button" class="filter-btn" data-kind="Rule">Rules</button>
+          <button type="button" class="filter-btn" data-kind="Hook">Hooks</button>
+        </div>
+      </div>
 
-  <section class="tile s-4 r-3">
-    <div>
-      <h2>Who it is for</h2>
-    </div>
-    <p>Developers who run coding agents in any harness and prefer reading a file over installing a package.</p>
-    <p class="small">A personal rule against <em>npm install</em> is mine, not this project's.</p>
-  </section>
+      <div id="holdings" class="holdings-list"></div>
+    </section>
 
-  <section class="tile s-4 r-3">
-    <div>
-      <h2>Not a marketplace</h2>
-    </div>
-    <p>I list skills I have used and vetted. Listing is not a claim of authorship, and nothing here is for sale.</p>
-  </section>
+    <!-- RIGHT: INSPECTOR & EXTRACTION -->
+    <div class="inspector-col">
+      <section class="panel" aria-live="polite">
+        <div class="detail-header">
+          <div class="detail-title-row">
+            <h3 id="detailName">example-skill</h3>
+            <a id="detailRawLink" class="raw-link" href="./skills/example-skill/SKILL.md" target="_blank" rel="noopener">Open raw file ↗</a>
+          </div>
+          <p id="detailDesc" style="margin: 6px 0 0; color: var(--ink-2); font-size: 0.92rem;"></p>
+          <div class="meta-row">
+            <span>Kind: <code id="detailKind">Skill</code></span>
+            <span>Path: <code id="detailPath">skills/example-skill/</code></span>
+            <span>Origin: <code id="detailOrigin">Vetted / Personal</code></span>
+          </div>
+        </div>
 
-  <section class="tile s-12 r-3">
-    <div>
-      <h2>Stored here</h2>
-      <p class="small">A small manifest in this page renders the holding. Folders stay in place; nothing is installed.</p>
-    </div>
-    <div id="holdings" class="holdings" aria-live="polite"></div>
-    <div class="links">
-      <a href="./skills/example-skill/SKILL.md">Open example SKILL.md</a>
-      <a href="./commands/does-something.md">Open example command</a>
-      <a href="./.opencode/skills/design-taste-frontend/SKILL.md">Open resident SKILL.md</a>
-    </div>
-  </section>
+        <div class="file-tabs-label">Files in holding (click to inspect)</div>
+        <div class="file-tabs" id="detailFiles"></div>
+        <pre class="preview-box" id="detailPreview"></pre>
+      </section>
 
-  <section class="tile tile--ink s-12 r-2">
-    <div>
-      <h2>Read before you take.</h2>
-      <p class="small" style="margin-top:8px;">agentconfigs — plain files, copied by hand. Commands on this page are samples; wire them to your own layout before launch.</p>
-    </div>
-  </section>
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Take one</h2>
+          <span class="count-badge">Plain-text extraction</span>
+        </div>
 
+        <div class="take-grid">
+          <div>
+            <label for="skillInput">Selected cargo</label>
+            <input id="skillInput" value="example-skill" spellcheck="false">
+          </div>
+          <div>
+            <label for="methodSelect">Extraction method</label>
+            <select id="methodSelect">
+              <option value="cp">Local clone (cp -r)</option>
+              <option value="curl">Direct remote fetch (curl)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <label for="destSelect">Target harness destination</label>
+          <select id="destSelect">
+            <option value="project">Project root (./skills, ./commands, ./agents...)</option>
+            <option value="global">Generic Global (~/.config/agent/...)</option>
+            <option value="claude">Claude Code (~/.claude/...)</option>
+            <option value="opencode">OpenCode (.opencode/...)</option>
+          </select>
+        </div>
+
+        <pre class="cmd-box" id="cmdOutput">cp -r skills/example-skill ./skills/</pre>
+
+        <div class="action-row">
+          <button id="copyBtn" class="btn-primary" type="button">Copy command</button>
+          <span id="copyStatus" class="copy-status" aria-live="polite"></span>
+        </div>
+        <noscript>
+          <pre class="cmd-box">cp -r skills/&lt;name&gt; &lt;your-agent-skills-dir&gt;/</pre>
+        </noscript>
+      </section>
+    </div>
+  </div>
+
+  <footer class="footer-ethos">
+    <div>
+      <strong>Not a marketplace.</strong> A coding agent is only as good as what you configure it with. These configurations are small, plain-text files — worth keeping, comparing, and sharing, not worth packaging.
+    </div>
+    <div>
+      <a href="./skills/example-skill/SKILL.md">example-skill</a> ·
+      <a href="./commands/does-something.md">does-something.md</a> ·
+      <a href="./.opencode/skills/design-taste-frontend/SKILL.md">design-taste-frontend</a>
+    </div>
+  </footer>
 </main>
 
 <script>
-(function () {
-  const skill = document.getElementById("skill");
-  const dest = document.getElementById("dest");
-  const cmd = document.getElementById("cmd");
-  const copyBtn = document.getElementById("copy");
-  const status = document.getElementById("status");
+(function() {
+  const holdingsData = [
+    {
+      kind: "Skill",
+      name: "example-skill",
+      folder: "skills",
+      path: "skills/example-skill/",
+      origin: "Repo template",
+      description: "Minimal skill showing the expected folder layout with on-demand reference docs.",
+      files: {
+        "SKILL.md": "---\nname: example-skill\ndescription: Minimal skill showing the folder layout. Load when testing skill resolution or creating a new skill.\n---\n\n# example-skill\n\nThis skill is loaded on demand when a task matches its description.\n\n## Instructions\n1. Read `./references/doc.md` for domain specifics.\n2. Execute the task using plain, deterministic steps.",
+        "references/doc.md": "# Reference Documentation\n\nSupport files live inside `references/`, `scripts/`, or `assets/`.\nThey stay out of the main context window until the agent explicitly reads them."
+      }
+    },
+    {
+      kind: "Command",
+      name: "does-something",
+      folder: "commands",
+      path: "commands/does-something.md",
+      origin: "Personal workflow",
+      description: "Example slash-command prompt read and executed when explicitly invoked.",
+      files: {
+        "does-something.md": "---\ndescription: Run a structured verification and summary pass on the current git diff.\n---\n\n# /does-something\n\n1. Inspect `git status` and `git diff --staged`.\n2. Flag any unintended debug statements, hardcoded secrets, or schema drift.\n3. Output a concise, 3-bullet readiness report."
+      }
+    },
+    {
+      kind: "Skill",
+      name: "design-taste-frontend",
+      folder: "skills",
+      path: ".opencode/skills/design-taste-frontend/",
+      origin: "Vetted (MIT)",
+      description: "Resident skill used for frontend art direction, typography hierarchy, and layout critique.",
+      files: {
+        "SKILL.md": "---\nname: design-taste-frontend\ndescription: Art direction, grid architecture, and motion gate for distinctive web interfaces.\nlicense: MIT\n---\n\n# design-taste-frontend\n\nDirections, copy deck, audit gate, critique, and restraint.\nPrefer strong typographic scale and high-contrast surfaces over decorative clutter.",
+        "README.md": "# Design Taste Frontend\n\nResident skill stored in `.opencode/skills/design-taste-frontend/`.\nInclude a `.nojekyll` file in the repository root so GitHub Pages serves dot-prefixed directories."
+      }
+    },
+    {
+      kind: "Agent",
+      name: "code-reviewer",
+      folder: "agents",
+      path: "agents/code-reviewer.md",
+      origin: "Personal setup",
+      description: "Read-only subagent configured to audit diffs for regressions without modifying files.",
+      files: {
+        "code-reviewer.md": "---\nname: code-reviewer\nmode: read-only\ntools: [read_file, grep, git_diff]\n---\n\n# Role: Staff Code Reviewer\n\nYou are an isolated subagent invoked to review changes.\nYou cannot edit files. Focus strictly on correctness, boundary conditions, and maintainability."
+      }
+    },
+    {
+      kind: "Rule",
+      name: "AGENTS",
+      folder: "rules",
+      path: "rules/AGENTS.md",
+      origin: "House rules",
+      description: "Session-start house rules and baseline constraints read before any task begins.",
+      files: {
+        "AGENTS.md": "# House Rules (AGENTS.md)\n\n- Prefer plain text and standard library tools over heavy dependencies.\n- Verify file paths before writing.\n- Never silence compiler or linter errors without explaining the root cause.\n- Keep commits atomic and messages factual."
+      }
+    },
+    {
+      kind: "Hook",
+      name: "pre-tool-guard",
+      folder: "hooks",
+      path: "hooks/pre-tool-guard.sh",
+      origin: "Harness guardrail",
+      description: "PreToolUse shell hook that blocks destructive git or filesystem commands before execution.",
+      files: {
+        "pre-tool-guard.sh": "#!/usr/bin/env bash\n# PreToolUse guardrail hook\nset -euo pipefail\n\nCMD_INPUT=\"${1:-}\"\nif [[ \"$CMD_INPUT\" =~ (rm[[:space:]]+-rf[[:space:]]+/|git[[:space:]]+push[[:space:]]+--force) ]]; then\n  echo \"[BLOCKED] Destructive command intercepted by pre-tool-guard.sh\" >&2\n  exit 1\nfi\nexit 0"
+      }
+    }
+  ];
 
-  function update() {
-    const name = (skill.value || "").trim() || "<name>";
-    const d = dest.value;
-    cmd.textContent = "cp -r skills/" + name + " " + d + "/";
+  let activeItem = holdingsData[0];
+  let activeFileKey = Object.keys(activeItem.files)[0];
+  let currentFilter = "all";
+  let searchQuery = "";
+
+  const holdingsEl = document.getElementById("holdings");
+  const itemCountEl = document.getElementById("itemCount");
+  const searchInput = document.getElementById("searchInput");
+  const filterBtns = document.querySelectorAll(".filter-btn");
+
+  const detailName = document.getElementById("detailName");
+  const detailDesc = document.getElementById("detailDesc");
+  const detailKind = document.getElementById("detailKind");
+  const detailPath = document.getElementById("detailPath");
+  const detailOrigin = document.getElementById("detailOrigin");
+  const detailRawLink = document.getElementById("detailRawLink");
+  const detailFiles = document.getElementById("detailFiles");
+  const detailPreview = document.getElementById("detailPreview");
+
+  const skillInput = document.getElementById("skillInput");
+  const methodSelect = document.getElementById("methodSelect");
+  const destSelect = document.getElementById("destSelect");
+  const cmdOutput = document.getElementById("cmdOutput");
+  const copyBtn = document.getElementById("copyBtn");
+  const copyStatus = document.getElementById("copyStatus");
+
+  // Attempt to fetch live file when hosted on GitHub Pages; fallback to inline preview
+  async function loadFileContent(item, fileKey) {
+    const fallback = item.files[fileKey];
+    detailPreview.textContent = fallback;
+
+    const relativeUrl = item.path.endsWith(".md") || item.path.endsWith(".sh")
+      ? "./" + item.path
+      : "./" + item.path + fileKey;
+
+    detailRawLink.href = relativeUrl;
+
+    if (window.location.protocol.startsWith("http")) {
+      try {
+        const res = await fetch(relativeUrl, { cache: "no-cache" });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && !text.trim().startsWith("<!DOCTYPE html>")) {
+            detailPreview.textContent = text;
+          }
+        }
+      } catch (_) {
+        // Keep embedded preview on offline or missing file
+      }
+    }
   }
 
-  skill.addEventListener("input", update);
-  dest.addEventListener("change", update);
-  update();
+  function renderFileTabs(item) {
+    const keys = Object.keys(item.files);
+    detailFiles.innerHTML = keys.map(k => {
+      const isAct = k === activeFileKey ? "active" : "";
+      return `<button type="button" class="file-tab ${isAct}" data-file="${k}">${k}</button>`;
+    }).join("");
 
-  copyBtn.addEventListener("click", async function () {
+    detailFiles.querySelectorAll(".file-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeFileKey = btn.dataset.file;
+        renderFileTabs(item);
+        loadFileContent(item, activeFileKey);
+      });
+    });
+  }
+
+  function selectHolding(item) {
+    activeItem = item;
+    activeFileKey = Object.keys(item.files)[0];
+
+    detailName.textContent = item.name;
+    detailDesc.textContent = item.description;
+    detailKind.textContent = item.kind;
+    detailPath.textContent = item.path;
+    detailOrigin.textContent = item.origin;
+
+    skillInput.value = item.name;
+    renderFileTabs(item);
+    loadFileContent(item, activeFileKey);
+    updateCommand();
+    renderHoldingsList();
+  }
+
+  function renderHoldingsList() {
+    const filtered = holdingsData.filter(item => {
+      const matchesKind = currentFilter === "all" || item.kind === currentFilter;
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q ||
+        item.name.toLowerCase().includes(q) ||
+        item.path.toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q);
+      return matchesKind && matchesSearch;
+    });
+
+    itemCountEl.textContent = `${filtered.length} ${filtered.length === 1 ? "item" : "items"}`;
+
+    holdingsEl.innerHTML = filtered.map((item, idx) => {
+      const isAct = item.name === activeItem.name ? "active" : "";
+      const filePills = Object.keys(item.files).map(f => `<span>${f}</span>`).join("");
+      return `
+        <article class="holding ${isAct}" data-name="${item.name}" tabindex="0">
+          <div class="holding-top">
+            <span class="holding-kind">${item.kind}</span>
+            <span class="holding-path">${item.path}</span>
+          </div>
+          <div class="holding-name">${item.name}</div>
+          <p class="holding-desc">${item.description}</p>
+          <div class="holding-files">${filePills}</div>
+        </article>
+      `;
+    }).join("");
+
+    holdingsEl.querySelectorAll(".holding").forEach(el => {
+      const trigger = () => {
+        const found = holdingsData.find(h => h.name === el.dataset.name);
+        if (found) selectHolding(found);
+      };
+      el.addEventListener("click", trigger);
+      el.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          trigger();
+        }
+      });
+    });
+  }
+
+  function updateCommand() {
+    const rawName = (skillInput.value || "").trim() || "<name>";
+    const matched = holdingsData.find(h => h.name === rawName);
+    const folder = matched ? matched.folder : "skills";
+    const isDir = folder === "skills";
+    const ext = folder === "hooks" ? ".sh" : ".md";
+
+    const baseMap = {
+      project: `./${folder}`,
+      global: `~/.config/agent/${folder}`,
+      claude: `~/.claude/${folder}`,
+      opencode: `.opencode/${folder}`
+    };
+    const destBase = baseMap[destSelect.value] || `./${folder}`;
+
+    if (methodSelect.value === "cp") {
+      if (isDir) {
+        const srcPath = matched ? matched.path.replace(/\/$/, "") : `skills/${rawName}`;
+        cmdOutput.textContent = `cp -r ${srcPath} ${destBase}/`;
+      } else {
+        const srcFile = matched ? matched.path : `${folder}/${rawName}${ext}`;
+        cmdOutput.textContent = `cp ${srcFile} ${destBase}/`;
+      }
+    } else {
+      const repoOrigin = window.location.origin + window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+      if (isDir) {
+        const srcPath = matched ? matched.path : `skills/${rawName}/`;
+        cmdOutput.textContent = `mkdir -p ${destBase}/${rawName} && curl -fsSL ${repoOrigin}/${srcPath}SKILL.md -o ${destBase}/${rawName}/SKILL.md`;
+      } else {
+        const srcFile = matched ? matched.path : `${folder}/${rawName}${ext}`;
+        const fileName = srcFile.split("/").pop();
+        cmdOutput.textContent = `mkdir -p ${destBase} && curl -fsSL ${repoOrigin}/${srcFile} -o ${destBase}/${fileName}`;
+      }
+    }
+  }
+
+  // Event Listeners
+  searchInput.addEventListener("input", e => {
+    searchQuery = e.target.value;
+    renderHoldingsList();
+  });
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      filterBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.kind;
+      renderHoldingsList();
+    });
+  });
+
+  skillInput.addEventListener("input", updateCommand);
+  methodSelect.addEventListener("change", updateCommand);
+  destSelect.addEventListener("change", updateCommand);
+
+  copyBtn.addEventListener("click", async () => {
     try {
-      await navigator.clipboard.writeText(cmd.textContent);
-      status.textContent = "Copied.";
-    } catch (e) {
-      // Fallback for file:// or insecure contexts.
+      await navigator.clipboard.writeText(cmdOutput.textContent);
+      copyStatus.textContent = "Copied to clipboard.";
+    } catch (_) {
       const range = document.createRange();
-      range.selectNode(cmd);
+      range.selectNode(cmdOutput);
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      try { document.execCommand("copy"); status.textContent = "Copied."; }
-      catch (err) { status.textContent = "Select the command and copy it manually."; }
+      try {
+        document.execCommand("copy");
+        copyStatus.textContent = "Copied to clipboard.";
+      } catch (err) {
+        copyStatus.textContent = "Select and copy manually.";
+      }
       sel.removeAllRanges();
     }
+    setTimeout(() => { copyStatus.textContent = ""; }, 2500);
   });
 
-  // Render the stored holding as a small catalogue. The manifest is hand-edited
-  // until a real build step (if ever) generates it from the filesystem.
-  const holdings = document.getElementById("holdings");
-  const holdingData = [
-    { kind: "Skill", name: "example-skill", path: "skills/example-skill/", files: ["SKILL.md", "references/doc.md"] },
-    { kind: "Command", name: "does-something", path: "commands/does-something.md", files: ["does-something.md"] },
-    { kind: "Skill", name: "design-taste-frontend", path: ".opencode/skills/design-taste-frontend/", files: ["SKILL.md", "README.md", "assets/", "references/", "scripts/"] }
-  ];
-  holdings.innerHTML = holdingData.map(function (item) {
-    return [
-      '<article class="holding">',
-        '<div>',
-          '<div class="holding-kind">' + item.kind + '</div>',
-          '<div class="holding-name">' + item.name + '</div>',
-        '</div>',
-        '<div></div>',
-        '<div class="holding-path">' + item.path + '</div>',
-        '<div class="holding-files">' + item.files.map(function (f) { return '<span>' + f + '</span>'; }).join("") + '</div>',
-      '</article>'
-    ].join("");
-  }).join("");
+  // Initialize
+  selectHolding(holdingsData[0]);
 })();
 </script>
-
 </body>
 </html>
