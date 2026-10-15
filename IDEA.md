@@ -10,24 +10,29 @@ plain-text files — worth keeping, comparing and sharing, not worth packaging.
 
 ## What it stores
 
-Three kinds of cargo, all plain text (skills are folders with support files):
+Three kinds of cargo, all plain text:
 
 - **Skills** — a folder with a `SKILL.md` and its support files, loaded on demand when a task
   matches the description. This is the primary thing the project stores and showcases.
-- **Agent configs** — small markdown files that give a subagent a job and a mode.
-- **Agent prompts** — the house rules and command prompts read at the start of a session.
+- **Agent configs** — small markdown files that give a subagent a job and a mode (read/write,
+  toolset, scope).
+- **Agent prompts** — the house rules (`./rules/AGENTS.md`) read at the start of a session, the
+  reusable slash-command prompts (`./commands/*.md`), and the lifecycle hooks (`./hooks/*.sh`)
+  that act as deterministic guardrails.
 
-The project is mostly storage. A website sits on top of it to share skills I have personally
+The project is mostly storage. A website sits on top of it to share cargo I have personally
 used and vetted. It is not a marketplace, and listing a skill here is not a claim that I wrote
 it.
 
 ## How it is stored
 
-The skills live in this project's own folders, not inside any agent's config directory, because
+The cargo lives in this project's own folders, not inside any agent's config directory, because
 this repository is for storage and showcase rather than for use. Nothing here is installed into an
-agent harness, and nothing runs in the background. Storage itself has no build step: every skill
-is a folder of plain files meant to be read before they are taken. (Any "no install" preference
-is a personal rule and is not part of this project.)
+agent harness, and nothing runs in the background. Storage itself has no build step for the
+content: every skill is a folder of plain files meant to be read before they are taken. The
+landing page does ship one checked-in file, `holdings.json`, which a small generator script
+(`scripts/refresh-holdings.mjs`) rebuilds from the folder tree at any time. (Any "no install"
+preference is a personal rule and is not part of this project.)
 
 ## Who it is for
 
@@ -36,7 +41,9 @@ package.
 
 ## Current state
 
-- One resident: `design-taste-frontend` (tasteskill v2, MIT), stored by copy — the same way
-  everything in this collection is meant to be taken.
-- A landing page to present the collection: what it holds, how to take one, and a working copy
-  of the copy ritual itself. (Not yet built.)
+- A working landing page (`./index.html`) that fetches `holdings.json` and renders every skill,
+  command, agent, rule, and hook with a live preview, a copy/curl extraction recipe, and a
+  filterable catalogue.
+- Five placeholder residents — one per cargo kind — to show the wiring end-to-end. They can be
+  replaced by real residents at any time by deleting the placeholder, dropping in the new folder
+  or file, and re-running the generator.

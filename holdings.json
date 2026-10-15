@@ -1,0 +1,58 @@
+[
+  {
+    "kind": "Skill",
+    "name": "example-skill",
+    "folder": "skills",
+    "path": "skills/example-skill/",
+    "origin": "Repo template",
+    "description": "Minimal skill showing the expected folder layout. Load when testing skill resolution or creating a new skill.",
+    "files": [
+      "SKILL.md",
+      "references/doc.md"
+    ]
+  },
+  {
+    "kind": "Command",
+    "name": "does-something",
+    "folder": "commands",
+    "path": "commands/does-something.md",
+    "origin": "Workflow prompt",
+    "description": "Run a structured verification and summary pass on the current git diff.",
+    "files": [
+      "does-something.md"
+    ]
+  },
+  {
+    "kind": "Agent",
+    "name": "example-agent",
+    "folder": "agents",
+    "path": "agents/example-agent.md",
+    "origin": "Subagent persona",
+    "description": "Read-only example subagent that audits changes without writing files.",
+    "files": [
+      "example-agent.md"
+    ]
+  },
+  {
+    "kind": "Rule",
+    "name": "AGENTS",
+    "folder": "rules",
+    "path": "rules/AGENTS.md",
+    "origin": "House rules",
+    "description": "Session-start house rules read before any task begins.",
+    "files": [
+      "AGENTS.md"
+    ]
+  },
+  {
+    "kind": "Hook",
+    "name": "pre-tool-guard",
+    "folder": "hooks",
+    "path": "hooks/pre-tool-guard.sh",
+    "origin": "Harness guardrail",
+    "description": "PreToolUse shell hook that blocks destructive git or filesystem commands before execution.",
+    "files": [
+      "pre-tool-guard.sh"
+    ]
+  }
+]

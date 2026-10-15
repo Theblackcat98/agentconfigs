@@ -164,6 +164,46 @@ a:hover { border-bottom-color: var(--accent); }
 .tree-card pre .hl { color: var(--ink); font-weight: 600; }
 .tree-card pre .acc { color: var(--accent); }
 .tree-card pre .dim { color: var(--ink-3); }
+.tree-hint {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.tree-hint code {
+  font-family: var(--mono);
+  background: var(--ground);
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+}
+
+.holdings-empty {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  color: var(--ink-2);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.holdings-empty code {
+  font-family: var(--mono);
+  background: var(--ground);
+  padding: 1px 5px;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  justify-content: flex-end;
+  align-items: baseline;
+}
+.footer-links a {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  border-bottom: 1px dashed transparent;
+}
+.footer-links a:hover { border-bottom-color: var(--accent); }
+.footer-links .dim { color: var(--ink-3); }
 
 /* --- WORKSPACE LAYOUT (CATALOGUE + INSPECTOR) --- */
 .workspace {
@@ -244,6 +284,7 @@ h2 {
   letter-spacing: 0.05em;
   cursor: pointer;
   transition: all 0.12s ease;
+  width: auto;
 }
 .filter-btn:hover {
   color: var(--ink);
@@ -390,6 +431,7 @@ h2 {
   color: var(--ink-2);
   border: 1px solid var(--border);
   cursor: pointer;
+  width: auto;
 }
 .file-tab:hover {
   color: var(--ink);
@@ -552,20 +594,8 @@ input, select {
     <div class="tree-card">
       <div class="card-tag">Repository Layout</div>
       <strong>Harness Directory Tree</strong>
-      <pre><span class="hl">.</span>
-├── <span class="acc">skills/</span>                 <span class="dim"># On-demand capability folders</span>
-│   └── <span class="hl">example-skill/</span>
-│       ├── references/
-│       │   └── doc.md
-│       └── SKILL.md
-├── <span class="acc">agents/</span>                 <span class="dim"># Scoped subagent personas & modes</span>
-│   └── code-reviewer.md
-├── <span class="acc">commands/</span>               <span class="dim"># Reusable workflow prompts</span>
-│   └── does-something.md
-├── <span class="acc">rules/</span>                  <span class="dim"># Session-start house rules</span>
-│   └── AGENTS.md
-└── <span class="acc">hooks/</span>                  <span class="dim"># Pre/Post tool lifecycle scripts</span>
-    └── pre-tool-guard.sh</pre>
+      <pre id="repoTree" aria-live="polite"></pre>
+      <p class="tree-hint dim">Tree is generated from <code>holdings.json</code>; run <code>node scripts/refresh-holdings.mjs</code> after adding or removing files.</p>
     </div>
   </div>
 
@@ -591,6 +621,7 @@ input, select {
       </div>
 
       <div id="holdings" class="holdings-list"></div>
+    <div id="holdingsEmpty" class="holdings-empty" hidden></div>
     </section>
 
     <!-- RIGHT: INSPECTOR & EXTRACTION -->
@@ -661,91 +692,148 @@ input, select {
     <div>
       <strong>Not a marketplace.</strong> A coding agent is only as good as what you configure it with. These configurations are small, plain-text files — worth keeping, comparing, and sharing, not worth packaging.
     </div>
-    <div>
-      <a href="./skills/example-skill/SKILL.md">example-skill</a> ·
-      <a href="./commands/does-something.md">does-something.md</a> ·
-      <a href="./.opencode/skills/design-taste-frontend/SKILL.md">design-taste-frontend</a>
-    </div>
+    <div id="footerLinks" class="footer-links" aria-label="All holdings"></div>
   </footer>
 </main>
 
 <script>
 (function() {
-  const holdingsData = [
-    {
-      kind: "Skill",
-      name: "example-skill",
-      folder: "skills",
-      path: "skills/example-skill/",
-      origin: "Repo template",
-      description: "Minimal skill showing the expected folder layout with on-demand reference docs.",
-      files: {
-        "SKILL.md": "---\nname: example-skill\ndescription: Minimal skill showing the folder layout. Load when testing skill resolution or creating a new skill.\n---\n\n# example-skill\n\nThis skill is loaded on demand when a task matches its description.\n\n## Instructions\n1. Read `./references/doc.md` for domain specifics.\n2. Execute the task using plain, deterministic steps.",
-        "references/doc.md": "# Reference Documentation\n\nSupport files live inside `references/`, `scripts/`, or `assets/`.\nThey stay out of the main context window until the agent explicitly reads them."
-      }
-    },
-    {
-      kind: "Command",
-      name: "does-something",
-      folder: "commands",
-      path: "commands/does-something.md",
-      origin: "Personal workflow",
-      description: "Example slash-command prompt read and executed when explicitly invoked.",
-      files: {
-        "does-something.md": "---\ndescription: Run a structured verification and summary pass on the current git diff.\n---\n\n# /does-something\n\n1. Inspect `git status` and `git diff --staged`.\n2. Flag any unintended debug statements, hardcoded secrets, or schema drift.\n3. Output a concise, 3-bullet readiness report."
-      }
-    },
-    {
-      kind: "Skill",
-      name: "design-taste-frontend",
-      folder: "skills",
-      path: ".opencode/skills/design-taste-frontend/",
-      origin: "Vetted (MIT)",
-      description: "Resident skill used for frontend art direction, typography hierarchy, and layout critique.",
-      files: {
-        "SKILL.md": "---\nname: design-taste-frontend\ndescription: Art direction, grid architecture, and motion gate for distinctive web interfaces.\nlicense: MIT\n---\n\n# design-taste-frontend\n\nDirections, copy deck, audit gate, critique, and restraint.\nPrefer strong typographic scale and high-contrast surfaces over decorative clutter.",
-        "README.md": "# Design Taste Frontend\n\nResident skill stored in `.opencode/skills/design-taste-frontend/`.\nInclude a `.nojekyll` file in the repository root so GitHub Pages serves dot-prefixed directories."
-      }
-    },
-    {
-      kind: "Agent",
-      name: "code-reviewer",
-      folder: "agents",
-      path: "agents/code-reviewer.md",
-      origin: "Personal setup",
-      description: "Read-only subagent configured to audit diffs for regressions without modifying files.",
-      files: {
-        "code-reviewer.md": "---\nname: code-reviewer\nmode: read-only\ntools: [read_file, grep, git_diff]\n---\n\n# Role: Staff Code Reviewer\n\nYou are an isolated subagent invoked to review changes.\nYou cannot edit files. Focus strictly on correctness, boundary conditions, and maintainability."
-      }
-    },
-    {
-      kind: "Rule",
-      name: "AGENTS",
-      folder: "rules",
-      path: "rules/AGENTS.md",
-      origin: "House rules",
-      description: "Session-start house rules and baseline constraints read before any task begins.",
-      files: {
-        "AGENTS.md": "# House Rules (AGENTS.md)\n\n- Prefer plain text and standard library tools over heavy dependencies.\n- Verify file paths before writing.\n- Never silence compiler or linter errors without explaining the root cause.\n- Keep commits atomic and messages factual."
-      }
-    },
-    {
-      kind: "Hook",
-      name: "pre-tool-guard",
-      folder: "hooks",
-      path: "hooks/pre-tool-guard.sh",
-      origin: "Harness guardrail",
-      description: "PreToolUse shell hook that blocks destructive git or filesystem commands before execution.",
-      files: {
-        "pre-tool-guard.sh": "#!/usr/bin/env bash\n# PreToolUse guardrail hook\nset -euo pipefail\n\nCMD_INPUT=\"${1:-}\"\nif [[ \"$CMD_INPUT\" =~ (rm[[:space:]]+-rf[[:space:]]+/|git[[:space:]]+push[[:space:]]+--force) ]]; then\n  echo \"[BLOCKED] Destructive command intercepted by pre-tool-guard.sh\" >&2\n  exit 1\nfi\nexit 0"
-      }
-    }
-  ];
+  // ---------- shared helpers ----------
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+  function escapeAttr(s) { return escapeHtml(s); }
 
-  let activeItem = holdingsData[0];
-  let activeFileKey = Object.keys(activeItem.files)[0];
+  const KIND_ORDER = ["Skill", "Command", "Agent", "Rule", "Hook"];
+  const FOLDER_NOTES = {
+    skills: "# On-demand capability folders",
+    agents: "# Scoped subagent personas & modes",
+    commands: "# Reusable workflow prompts",
+    rules: "# Session-start house rules",
+    hooks: "# Pre/Post tool lifecycle scripts"
+  };
+  const FOLDER_KINDS = {
+    skills: "Skill",
+    agents: "Agent",
+    commands: "Command",
+    rules: "Rule",
+    hooks: "Hook"
+  };
+
+  function renderTree() {
+    const tree = document.getElementById("repoTree");
+    if (!tree) return;
+    if (!holdingsData.length) {
+      tree.textContent = "(No holdings — run `node scripts/refresh-holdings.mjs` to populate.)";
+      return;
+    }
+    const byFolder = new Map();
+    for (const h of holdingsData) {
+      if (!byFolder.has(h.folder)) byFolder.set(h.folder, []);
+      byFolder.get(h.folder).push(h);
+    }
+    const folders = Object.keys(FOLDER_KINDS).filter((f) => byFolder.has(f));
+    const lines = [];
+    lines.push('<span class="hl">.</span>');
+    folders.forEach((folder, idx) => {
+      const isLast = idx === folders.length - 1;
+      const top = isLast ? "└── " : "├── ";
+      const inner = isLast ? "    " : "│   ";
+      lines.push(`${top}<span class="acc">${folder}/</span> <span class="dim">${FOLDER_NOTES[folder]}</span>`);
+      const items = byFolder.get(folder).slice().sort((a, b) => a.name.localeCompare(b.name));
+      items.forEach((item, i) => {
+        const last = i === items.length - 1;
+        const node = last ? "└── " : "├── ";
+        const tail = last ? inner + "    " : inner + "│   ";
+        if (item.kind === "Skill") {
+          lines.push(`${inner}${node}<span class="hl">${escapeHtml(item.name)}/</span>`);
+          item.files.forEach((f, fi) => {
+            const c = fi === item.files.length - 1 ? "└── " : "├── ";
+            lines.push(`${tail}${c}${escapeHtml(f)}`);
+          });
+        } else {
+          const fileName = item.files[0] || `${item.name}${item.folder === "hooks" ? ".sh" : ".md"}`;
+          lines.push(`${inner}${node}${escapeHtml(fileName)}`);
+        }
+      });
+    });
+    tree.innerHTML = lines.join("\n");
+  }
+
+  function renderFooterLinks() {
+    const el = document.getElementById("footerLinks");
+    if (!el) return;
+    if (!holdingsData.length) {
+      el.innerHTML = '<span class="dim">no holdings yet</span>';
+      return;
+    }
+    const sorted = holdingsData.slice().sort((a, b) => {
+      if (a.kind !== b.kind) return KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind);
+      return a.name.localeCompare(b.name);
+    });
+    el.innerHTML = sorted.map((item) => {
+      const url = item.kind === "Skill"
+        ? `./${item.path}${item.files[0]}`
+        : `./${item.path}`;
+      const label = item.kind === "Skill" ? item.name : (item.files[0] || item.path);
+      return `<a href="${escapeAttr(url)}">${escapeHtml(label)}</a>`;
+    }).join(" · ");
+  }
+
+  // ---------- runtime state ----------
+  const holdingsData = [];
+
+  let activeItem = null;
+  let activeFileKey = null;
   let currentFilter = "all";
   let searchQuery = "";
+
+  async function loadHoldings() {
+    const emptyEl = document.getElementById("holdingsEmpty");
+    try {
+      const res = await fetch("./holdings.json", { cache: "no-cache" });
+      if (!res.ok) throw new Error(`holdings.json: HTTP ${res.status}`);
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("holdings.json must be an array.");
+      holdingsData.length = 0;
+      for (const item of data) {
+        if (item && typeof item === "object" && Array.isArray(item.files)) {
+          holdingsData.push(item);
+        }
+      }
+    } catch (err) {
+      holdingsData.length = 0;
+      console.warn("Could not load holdings.json:", err);
+    }
+    renderTree();
+    renderFooterLinks();
+    renderHoldingsList();
+    if (holdingsData.length) {
+      selectHolding(holdingsData[0]);
+      if (emptyEl) emptyEl.hidden = true;
+    } else {
+      if (emptyEl) {
+        emptyEl.hidden = false;
+        emptyEl.textContent =
+          "No holdings.json found. Run `node scripts/refresh-holdings.mjs` to regenerate it from the folder tree.";
+      }
+      // Reset the inspector to a blank state.
+      activeItem = null;
+      activeFileKey = null;
+      detailName.textContent = "(no holdings)";
+      detailDesc.textContent = "";
+      detailKind.textContent = "—";
+      detailPath.textContent = "—";
+      detailOrigin.textContent = "—";
+      detailRawLink.href = "#";
+      detailRawLink.setAttribute("aria-hidden", "true");
+      detailFiles.innerHTML = "";
+      detailPreview.textContent = "(Add a skill, command, agent, rule, or hook under its folder, then refresh this page after running the holdings generator.)";
+      cmdOutput.textContent = "cp -r skills/<name> ./skills/";
+    }
+  }
 
   const holdingsEl = document.getElementById("holdings");
   const itemCountEl = document.getElementById("itemCount");
@@ -802,10 +890,10 @@ input, select {
   }
 
   function renderFileTabs(item) {
-    const keys = Object.keys(item.files);
+    const keys = item.files || [];
     detailFiles.innerHTML = keys.map(k => {
       const isAct = k === activeFileKey ? "active" : "";
-      return `<button type="button" class="file-tab ${isAct}" data-file="${k}">${k}</button>`;
+      return `<button type="button" class="file-tab ${isAct}" data-file="${escapeAttr(k)}">${escapeHtml(k)}</button>`;
     }).join("");
 
     detailFiles.querySelectorAll(".file-tab").forEach(btn => {
@@ -819,17 +907,18 @@ input, select {
 
   function selectHolding(item) {
     activeItem = item;
-    activeFileKey = Object.keys(item.files)[0];
+    activeFileKey = (item.files && item.files[0]) || null;
 
     detailName.textContent = item.name;
     detailDesc.textContent = item.description;
     detailKind.textContent = item.kind;
     detailPath.textContent = item.path;
     detailOrigin.textContent = item.origin;
+    detailRawLink.removeAttribute("aria-hidden");
 
     skillInput.value = item.name;
     renderFileTabs(item);
-    loadFileContent(item, activeFileKey);
+    if (activeFileKey) loadFileContent(item, activeFileKey);
     updateCommand();
     renderHoldingsList();
   }
@@ -847,17 +936,17 @@ input, select {
 
     itemCountEl.textContent = `${filtered.length} ${filtered.length === 1 ? "item" : "items"}`;
 
-    holdingsEl.innerHTML = filtered.map((item, idx) => {
-      const isAct = item.name === activeItem.name ? "active" : "";
-      const filePills = Object.keys(item.files).map(f => `<span>${f}</span>`).join("");
+    holdingsEl.innerHTML = filtered.map((item) => {
+      const isAct = activeItem && item.name === activeItem.name ? "active" : "";
+      const filePills = (item.files || []).map(f => `<span>${escapeHtml(f)}</span>`).join("");
       return `
-        <article class="holding ${isAct}" data-name="${item.name}" tabindex="0">
+        <article class="holding ${isAct}" data-name="${escapeAttr(item.name)}" tabindex="0">
           <div class="holding-top">
-            <span class="holding-kind">${item.kind}</span>
-            <span class="holding-path">${item.path}</span>
+            <span class="holding-kind">${escapeHtml(item.kind)}</span>
+            <span class="holding-path">${escapeHtml(item.path)}</span>
           </div>
-          <div class="holding-name">${item.name}</div>
-          <p class="holding-desc">${item.description}</p>
+          <div class="holding-name">${escapeHtml(item.name)}</div>
+          <p class="holding-desc">${escapeHtml(item.description)}</p>
           <div class="holding-files">${filePills}</div>
         </article>
       `;
@@ -955,7 +1044,7 @@ input, select {
   });
 
   // Initialize
-  selectHolding(holdingsData[0]);
+  loadHoldings();
 })();
 </script>
 </body>
