@@ -1,0 +1,6 @@
+{
+  "name": "goal",
+  "version": "0.1.0",
+  "author": "Theblackcat98",
+  "description": "Goal mode bundle: autonomous goal-runner agent that works until the objective is verified or blocked."
+}

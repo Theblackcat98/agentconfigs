@@ -10,8 +10,9 @@ that lets you browse, preview, and copy them out.
 
 ## Cargo folders
 
-A **plugin** is a bundle: a folder under `plugins/` containing any mix of the other kinds,
-mirroring the repo layout inside itself, plus a `plugin.json` manifest:
+A **plugin** is a bundle: a folder under `plugins/` with a `plugin.json` manifest,
+containing any mix of the other kinds (mirroring the repo layout inside itself)
+plus optional harness runtime (e.g. opencode `index.ts`, `rpc.ts`, `tui.*`):
 
 ```
 plugins/
@@ -20,12 +21,18 @@ plugins/
     agents/code-reviewer.md
     commands/review.md
     hooks/pre-push-guard.sh
+  goal/
+    plugin.json
+    agents/goal-runner.md
+    index.ts
+    rpc.ts
+    tui.tsx
 ```
 
 | Folder        | Kind      | Form                                             |
 | ------------- | --------- | ------------------------------------------------ |
 | `skills/`     | Skill     | A folder with a `SKILL.md` and support files.    |
-| `plugins/`    | Plugin    | A folder bundling any mix of the other kinds, with a `plugin.json` manifest. |
+| `plugins/`    | Plugin    | A folder with a `plugin.json` manifest, bundling cargo plus optional harness runtime (`index.ts`, `rpc.ts`, `tui.*`). |
 | `agents/`     | Agent     | A single `.md` file describing a subagent role.  |
 | `commands/`   | Command   | A single `.md` file for a slash-command prompt.  |
 | `rules/`      | Rule      | A single `.md` file (typically `AGENTS.md`).     |

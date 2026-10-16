@@ -1,6 +1,45 @@
 [
   {
     "kind": "Skill",
+    "name": "beautiful-ui",
+    "folder": "skills",
+    "path": "skills/beautiful-ui/",
+    "origin": "Repo template",
+    "description": "Apply the Beautiful UI design system to the current work. Cool blue-tinted neutrals, hairline borders, layered soft shadows, Inter and JetBrains Mono, pill buttons, status pills, and light and dark tokens. Use when the user invokes beautiful-ui, asks to restyle or theme a UI in the Beautiful UI look, or builds AI chat, agent, approval, thinking, tool-call, records table, or prompt composer interfaces. Installs a tokens stylesheet and audits code for values that bypass the tokens.",
+    "files": [
+      "SKILL.md",
+      "assets/beautiful-ui.css",
+      "references/components.md",
+      "references/dark-mode.md",
+      "references/motion.md",
+      "references/source-map.md",
+      "references/tokens.md",
+      "references/typography-layout.md",
+      "scripts/audit.sh",
+      "scripts/install.sh"
+    ]
+  },
+  {
+    "kind": "Skill",
+    "name": "codebase-deep-dive",
+    "folder": "skills",
+    "path": "skills/codebase-deep-dive/",
+    "origin": "Repo template",
+    "description": "Survey an unfamiliar repository and produce verified architecture documentation — module maps, end-to-end flow traces, data models, extension points, glossary and a where-to-change guide — by dispatching parallel subagents per section, then adversarially re-checking their claims against the code. Use when asked to explain, document, map, tour, onboard onto, or audit the architecture and mechanics of a repo, codebase, microservice or script, including questions like how does X work, what does this project actually do, or walk me through this repo. Writes docs/architecture/ and leaves source untouched.",
+    "files": [
+      "SKILL.md",
+      "references/anatomy-checklist.md",
+      "references/flow-catalog.md",
+      "references/report-templates.md",
+      "references/skeptic-brief.md",
+      "references/surveyor-brief.md",
+      "references/tracer-brief.md",
+      "references/working-file-format.md",
+      "scripts/repo-inventory.sh"
+    ]
+  },
+  {
+    "kind": "Skill",
     "name": "example-skill",
     "folder": "skills",
     "path": "skills/example-skill/",
@@ -9,6 +48,97 @@
     "files": [
       "SKILL.md",
       "references/doc.md"
+    ]
+  },
+  {
+    "kind": "Skill",
+    "name": "frontend-design",
+    "folder": "skills",
+    "path": "skills/frontend-design/",
+    "origin": "Repo template",
+    "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics.",
+    "files": [
+      "SKILL.md"
+    ]
+  },
+  {
+    "kind": "Skill",
+    "name": "managing-git",
+    "folder": "skills",
+    "path": "skills/managing-git/",
+    "origin": "Repo template",
+    "description": "Guides git workflows, branching strategies, commit conventions, and version control best practices. Use when managing repositories, creating branches, or handling merges.",
+    "files": [
+      "SKILL.md"
+    ]
+  },
+  {
+    "kind": "Skill",
+    "name": "parallel-execution",
+    "folder": "skills",
+    "path": "skills/parallel-execution/",
+    "origin": "Repo template",
+    "description": "CRITICAL skill for executing multiple Task tool calls in a SINGLE message for true parallelism. Essential for efficient multi-task workflows, subagent coordination, and maximizing throughput.",
+    "files": [
+      "SKILL.md"
+    ]
+  },
+  {
+    "kind": "Skill",
+    "name": "plane",
+    "folder": "skills",
+    "path": "skills/plane/",
+    "origin": "Repo template",
+    "description": "Operate the Plane project-management MCP server — create, update, list, and search Plane projects, work items (issues, tasks, epics), cycles, modules, milestones, states, labels, pages, intake, releases, and customers. Use when the user mentions Plane, a work item identifier such as ENG-42, PQL or work item queries, cycle or sprint planning, triaging intake, or asks to file, assign, link, comment on, or report on Plane items.",
+    "files": [
+      "SKILL.md",
+      "references/tool-catalog.md"
+    ]
+  },
+  {
+    "kind": "Skill",
+    "name": "project-audit-bug-hunt",
+    "folder": "skills",
+    "path": "skills/project-audit-bug-hunt/",
+    "origin": "Repo template",
+    "description": "Audit an entire codebase for bugs, security holes, leftover mock/prototype code, missing tests, and stale docs by splitting it into sections and dispatching one parallel subagent per section, each writing a findings file, then merging everything into a prioritized remediation plan. Use when the user asks to \"find everything wrong\", audit a project, bug-hunt, assess production readiness, or produce a remediation plan for a whole repo (not a single diff or PR).",
+    "files": [
+      "SKILL.md",
+      "references/auditor-prompt.md",
+      "references/findings-format.md",
+      "references/hunt-lists.md",
+      "references/plan-template.md"
+    ]
+  },
+  {
+    "kind": "Plugin",
+    "name": "goal",
+    "folder": "plugins",
+    "path": "plugins/goal/",
+    "origin": "Bundle",
+    "description": "Goal mode bundle: autonomous goal-runner agent that works until the objective is verified or blocked.",
+    "files": [
+      "plugin.json",
+      "agents/goal-runner.md",
+      "index.test.ts",
+      "index.ts",
+      "rpc.ts",
+      "tui.test.ts",
+      "tui.tsx"
+    ]
+  },
+  {
+    "kind": "Plugin",
+    "name": "handoff",
+    "folder": "plugins",
+    "path": "plugins/handoff/",
+    "origin": "Bundle",
+    "description": "Plugin bundle: handoff",
+    "files": [
+      "plugin.json",
+      "index.ts",
+      "rpc.ts",
+      "tui.ts"
     ]
   },
   {
