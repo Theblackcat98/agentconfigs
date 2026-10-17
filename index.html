@@ -398,6 +398,23 @@ h2 {
   font-family: var(--mono);
   font-size: 0.8rem;
 }
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-install {
+  padding: 7px 16px;
+  font-size: 0.85rem;
+}
+.install-status {
+  margin: 6px 0 0;
+  min-height: 1.1em;
+}
+.cmd-note {
+  font-size: 0.82rem;
+  margin: 8px 0 0;
+}
 
 .meta-row {
   display: flex;
@@ -646,8 +663,12 @@ input, select {
         <div class="detail-header">
           <div class="detail-title-row">
             <h3 id="detailName">example-skill</h3>
-            <a id="detailRawLink" class="raw-link" href="./skills/example-skill/SKILL.md" target="_blank" rel="noopener">Open raw file ↗</a>
+            <div class="detail-actions">
+              <button id="installBtn" class="btn-primary btn-install" type="button" title="Copy the install command for this holding">Install</button>
+              <a id="detailRawLink" class="raw-link" href="./skills/example-skill/SKILL.md" target="_blank" rel="noopener">Open raw file ↗</a>
+            </div>
           </div>
+          <p id="installStatus" class="copy-status install-status" aria-live="polite"></p>
           <p id="detailDesc" style="margin: 6px 0 0; color: var(--ink-2); font-size: 0.92rem;"></p>
           <div class="meta-row">
             <span>Kind: <code id="detailKind">Skill</code></span>
@@ -692,6 +713,7 @@ input, select {
         </div>
 
         <pre class="cmd-box" id="cmdOutput">cp -r skills/example-skill ./skills/</pre>
+        <p id="cmdNote" class="cmd-note dim" aria-live="polite"></p>
 
         <div class="action-row">
           <button id="copyBtn" class="btn-primary" type="button">Copy command</button>
@@ -878,6 +900,8 @@ input, select {
   const detailPath = document.getElementById("detailPath");
   const detailOrigin = document.getElementById("detailOrigin");
   const detailRawLink = document.getElementById("detailRawLink");
+  const installBtn = document.getElementById("installBtn");
+  const installStatus = document.getElementById("installStatus");
   const detailFiles = document.getElementById("detailFiles");
   const detailPreview = document.getElementById("detailPreview");
 
@@ -885,6 +909,7 @@ input, select {
   const methodSelect = document.getElementById("methodSelect");
   const destSelect = document.getElementById("destSelect");
   const cmdOutput = document.getElementById("cmdOutput");
+  const cmdNote = document.getElementById("cmdNote");
   const copyBtn = document.getElementById("copyBtn");
   const copyStatus = document.getElementById("copyStatus");
 
@@ -1025,50 +1050,71 @@ input, select {
     });
   }
 
+  const DEST_BASES = {
+    project: (folder) => `./${folder}`,
+    global: (folder) => `~/.config/agent/${folder}`,
+    claude: (folder) => `~/.claude/${folder}`,
+    opencode: (folder) => `.opencode/${folder}`
+  };
+
+  function repoOrigin() {
+    return window.location.origin + window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+  }
+
+  // Escape a value for use inside double quotes in a shell command.
+  function shDq(s) {
+    return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$").replace(/`/g, "\\`");
+  }
+
+  // Build the install command for a holding. Shared by the Take One console
+  // and the one-click Install button. Returns { cmd, note }.
+  function buildInstallCommand(item, method, destKey) {
+    const name = item ? item.name : ((skillInput.value || "").trim() || "<name>");
+    const folder = item ? item.folder : "skills";
+    const isDir = folder === "skills" || folder === "plugins";
+    const ext = folder === "hooks" ? ".sh" : ".md";
+    const destBase = (DEST_BASES[destKey] || DEST_BASES.project)(folder);
+    const origin = repoOrigin();
+    let cmd;
+    const notes = [];
+
+    if (method === "cp") {
+      cmd = isDir
+        ? `cp -r ${(item ? item.path.replace(/\/$/, "") : `skills/${name}`)} ${destBase}/`
+        : `cp ${(item ? item.path : `${folder}/${name}${ext}`)} ${destBase}/`;
+    } else if (isDir) {
+      // Folder-based holdings fetch every file so the copy is complete.
+      // One compact loop instead of a chained curl per file.
+      const srcPath = item ? item.path : `skills/${name}/`;
+      const files = (item && item.files.length ? item.files : ["SKILL.md"]);
+      const subdirs = [...new Set(files.map(f => f.includes("/") ? f.slice(0, f.lastIndexOf("/")) : "").filter(Boolean))];
+      const target = `${destBase}/${name}`;
+      const mkdirs = [target, ...subdirs.map(d => `${target}/${d}`)].join(" ");
+      const list = files.map(f => `"${shDq(f)}"`).join(" ");
+      cmd = `mkdir -p ${mkdirs} && for f in ${list}; do curl -fsSL ${origin}/${srcPath}"$f" -o ${target}/"$f"; done`;
+      if (files.length > 25) {
+        notes.push(`Large holding (${files.length} files) — cloning the repo may be easier: git clone https://github.com/Theblackcat98/agentconfigs.git`);
+      }
+    } else {
+      const srcFile = item ? item.path : `${folder}/${name}${ext}`;
+      const fileName = srcFile.split("/").pop();
+      cmd = `mkdir -p ${destBase} && curl -fsSL ${origin}/${srcFile} -o ${destBase}/${fileName}`;
+    }
+
+    if (folder === "hooks") {
+      notes.push("Copying installs the script — wire it into your harness's hooks/settings config for it to run.");
+    } else if (folder === "rules") {
+      notes.push("Merge into your existing AGENTS.md rather than overwriting it.");
+    }
+    return { cmd, note: notes.join(" ") };
+  }
+
   function updateCommand() {
     const rawName = (skillInput.value || "").trim() || "<name>";
     const matched = holdingsData.find(h => h.name === rawName);
-    const folder = matched ? matched.folder : "skills";
-    const isDir = folder === "skills" || folder === "plugins";
-    const ext = folder === "hooks" ? ".sh" : ".md";
-
-    const baseMap = {
-      project: `./${folder}`,
-      global: `~/.config/agent/${folder}`,
-      claude: `~/.claude/${folder}`,
-      opencode: `.opencode/${folder}`
-    };
-    const destBase = baseMap[destSelect.value] || `./${folder}`;
-
-    if (methodSelect.value === "cp") {
-      if (isDir) {
-        const srcPath = matched ? matched.path.replace(/\/$/, "") : `skills/${rawName}`;
-        cmdOutput.textContent = `cp -r ${srcPath} ${destBase}/`;
-      } else {
-        const srcFile = matched ? matched.path : `${folder}/${rawName}${ext}`;
-        cmdOutput.textContent = `cp ${srcFile} ${destBase}/`;
-      }
-    } else {
-      const repoOrigin = window.location.origin + window.location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
-      if (isDir) {
-        // Folder-based holdings fetch every file so the copy is complete.
-        const srcPath = matched ? matched.path : `skills/${rawName}/`;
-        const files = (matched && matched.files.length ? matched.files : ["SKILL.md"]);
-        const subdirs = [...new Set(files.map(f => f.includes("/") ? f.slice(0, f.lastIndexOf("/")) : "").filter(Boolean))];
-        const parts = [`mkdir -p ${destBase}/${rawName}`];
-        if (subdirs.length) {
-          parts.push(`mkdir -p ${subdirs.map(d => `${destBase}/${rawName}/${d}`).join(" ")}`);
-        }
-        for (const f of files) {
-          parts.push(`curl -fsSL ${repoOrigin}/${srcPath}${f} -o ${destBase}/${rawName}/${f}`);
-        }
-        cmdOutput.textContent = parts.join(" && \\\n  ");
-      } else {
-        const srcFile = matched ? matched.path : `${folder}/${rawName}${ext}`;
-        const fileName = srcFile.split("/").pop();
-        cmdOutput.textContent = `mkdir -p ${destBase} && curl -fsSL ${repoOrigin}/${srcFile} -o ${destBase}/${fileName}`;
-      }
-    }
+    const { cmd, note } = buildInstallCommand(matched, methodSelect.value, destSelect.value);
+    cmdOutput.textContent = cmd;
+    cmdNote.textContent = note;
   }
 
   // Event Listeners
@@ -1089,6 +1135,53 @@ input, select {
   skillInput.addEventListener("input", updateCommand);
   methodSelect.addEventListener("change", updateCommand);
   destSelect.addEventListener("change", updateCommand);
+
+  // Remember the user's harness + method choices so the one-click Install
+  // button generates the right command on later visits.
+  function loadPrefs() {
+    try {
+      const dest = localStorage.getItem("agentconfigs.dest");
+      if (dest && DEST_BASES[dest]) destSelect.value = dest;
+      const method = localStorage.getItem("agentconfigs.method");
+      if (method === "cp" || method === "curl") methodSelect.value = method;
+    } catch (_) { /* storage unavailable — defaults stand */ }
+  }
+  function savePrefs() {
+    try {
+      localStorage.setItem("agentconfigs.dest", destSelect.value);
+      localStorage.setItem("agentconfigs.method", methodSelect.value);
+    } catch (_) { /* ignore */ }
+  }
+  methodSelect.addEventListener("change", savePrefs);
+  destSelect.addEventListener("change", savePrefs);
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // One-click install for the holding in the inspector: always the curl
+  // variant (works for visitors without a local clone), targeted at the
+  // remembered harness destination.
+  installBtn.addEventListener("click", async () => {
+    if (!activeItem) {
+      installStatus.textContent = "Select a holding first.";
+      return;
+    }
+    const { cmd, note } = buildInstallCommand(activeItem, "curl", destSelect.value);
+    const ok = await copyText(cmd);
+    if (ok) {
+      const destLabel = (DEST_BASES[destSelect.value] || DEST_BASES.project)(activeItem.folder);
+      installStatus.textContent = `Copied — paste in your terminal to install into ${destLabel}/.${note ? " " + note : ""}`;
+    } else {
+      installStatus.textContent = "Copy failed — use the Take one console below to copy manually.";
+    }
+    setTimeout(() => { installStatus.textContent = ""; }, 6000);
+  });
 
   copyBtn.addEventListener("click", async () => {
     try {
@@ -1112,6 +1205,7 @@ input, select {
   });
 
   // Initialize
+  loadPrefs();
   loadHoldings();
 })();
 </script>
