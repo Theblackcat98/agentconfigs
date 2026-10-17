@@ -363,6 +363,10 @@ h2 {
   padding: 2px 7px;
   font-size: 0.74rem;
 }
+.holding-files span.more {
+  background: transparent;
+  border-style: dashed;
+}
 
 /* --- INSPECTOR & EXTRACTION CONSOLE --- */
 .inspector-col {
@@ -440,6 +444,10 @@ h2 {
   background: var(--ground-3);
   color: var(--accent);
   border-color: var(--accent);
+}
+.file-tab.more-tab {
+  border-style: dashed;
+  color: var(--ink-3, var(--ink-2));
 }
 
 .preview-box {
@@ -810,6 +818,7 @@ input, select {
 
   let activeItem = null;
   let activeFileKey = null;
+  let tabsExpanded = null; // holding name whose file tabs are fully expanded
   let currentFilter = "all";
   let searchQuery = "";
 
@@ -912,15 +921,36 @@ input, select {
     }
   }
 
+  const FILE_TAB_LIMIT = 8; // inspector tabs shown before collapsing behind "+ N more"
+
   function renderFileTabs(item) {
     const keys = item.files || [];
-    detailFiles.innerHTML = keys.map(k => {
+    const expanded = tabsExpanded === item.name;
+    const visible = expanded ? keys : keys.slice(0, FILE_TAB_LIMIT);
+    const hidden = keys.length - visible.length;
+    let toggle = "";
+    if (hidden > 0) {
+      toggle = `<button type="button" class="file-tab more-tab" data-more="1">+ ${hidden} more</button>`;
+    } else if (expanded && keys.length > FILE_TAB_LIMIT) {
+      toggle = `<button type="button" class="file-tab more-tab" data-less="1">show fewer</button>`;
+    }
+    detailFiles.innerHTML = visible.map(k => {
       const isAct = k === activeFileKey ? "active" : "";
       return `<button type="button" class="file-tab ${isAct}" data-file="${escapeAttr(k)}">${escapeHtml(k)}</button>`;
-    }).join("");
+    }).join("") + toggle;
 
     detailFiles.querySelectorAll(".file-tab").forEach(btn => {
       btn.addEventListener("click", () => {
+        if (btn.dataset.more) {
+          tabsExpanded = item.name;
+          renderFileTabs(item);
+          return;
+        }
+        if (btn.dataset.less) {
+          tabsExpanded = null;
+          renderFileTabs(item);
+          return;
+        }
         activeFileKey = btn.dataset.file;
         renderFileTabs(item);
         loadFileContent(item, activeFileKey);
@@ -931,6 +961,7 @@ input, select {
   function selectHolding(item) {
     activeItem = item;
     activeFileKey = (item.files && item.files[0]) || null;
+    tabsExpanded = null;
 
     detailName.textContent = item.name;
     detailDesc.textContent = item.description;
@@ -961,7 +992,11 @@ input, select {
 
     holdingsEl.innerHTML = filtered.map((item) => {
       const isAct = activeItem && item.name === activeItem.name ? "active" : "";
-      const filePills = (item.files || []).map(f => `<span>${escapeHtml(f)}</span>`).join("");
+      const files = item.files || [];
+      const shownPills = files.slice(0, 4);
+      const hiddenPills = files.length - shownPills.length;
+      const filePills = shownPills.map(f => `<span>${escapeHtml(f)}</span>`).join("") +
+        (hiddenPills > 0 ? `<span class="more">+${hiddenPills} more</span>` : "");
       return `
         <article class="holding ${isAct}" data-name="${escapeAttr(item.name)}" tabindex="0">
           <div class="holding-top">
