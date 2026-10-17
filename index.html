@@ -600,9 +600,9 @@ input, select {
 
     <div class="tree-card">
       <div class="card-tag">Repository Layout</div>
-      <strong>Harness Directory Tree</strong>
+      <strong>Directory Overview</strong>
       <pre id="repoTree" aria-live="polite"></pre>
-      <p class="tree-hint dim">Tree is generated from <code>holdings.json</code>; run <code>node scripts/refresh-holdings.mjs</code> after adding or removing files.</p>
+      <p class="tree-hint dim">Summarized from <code>holdings.json</code> — select a holding below to browse its full file list.</p>
     </div>
   </div>
 
@@ -739,6 +739,10 @@ input, select {
       tree.textContent = "(No holdings — run `node scripts/refresh-holdings.mjs` to populate.)";
       return;
     }
+    // Summary overview: each cargo folder shows its holding count and a few
+    // example entries. Full file lists live in the inspector below, so this
+    // box stays a quick "what goes where" sketch instead of an exhaustive dump.
+    const SHOW_ITEMS = 3;
     const byFolder = new Map();
     for (const h of holdingsData) {
       if (!byFolder.has(h.folder)) byFolder.set(h.folder, []);
@@ -751,18 +755,25 @@ input, select {
       const isLast = idx === folders.length - 1;
       const top = isLast ? "└── " : "├── ";
       const inner = isLast ? "    " : "│   ";
-      lines.push(`${top}<span class="acc">${folder}/</span> <span class="dim">${FOLDER_NOTES[folder]}</span>`);
       const items = byFolder.get(folder).slice().sort((a, b) => a.name.localeCompare(b.name));
-      items.forEach((item, i) => {
-        const last = i === items.length - 1;
+      const kindWord = FOLDER_KINDS[folder].toLowerCase();
+      const kindLabel = items.length === 1 ? kindWord : kindWord + "s";
+      lines.push(`${top}<span class="acc">${folder}/</span> <span class="dim">${items.length} ${kindLabel}</span>`);
+      const shown = items.slice(0, SHOW_ITEMS);
+      const hidden = items.length - shown.length;
+      const rows = hidden > 0 ? [...shown, null] : shown;
+      rows.forEach((item, i) => {
+        const last = i === rows.length - 1;
         const node = last ? "└── " : "├── ";
-        const tail = last ? inner + "    " : inner + "│   ";
+        if (item === null) {
+          lines.push(`${inner}${node}<span class="dim">… ${hidden} more</span>`);
+          return;
+        }
         if (item.kind === "Skill" || item.kind === "Plugin") {
-          lines.push(`${inner}${node}<span class="hl">${escapeHtml(item.name)}/</span>`);
-          item.files.forEach((f, fi) => {
-            const c = fi === item.files.length - 1 ? "└── " : "├── ";
-            lines.push(`${tail}${c}${escapeHtml(f)}`);
-          });
+          const anchor = item.kind === "Skill" ? "SKILL.md" : "plugin.json";
+          const extra = Math.max(0, item.files.length - 1);
+          const detail = extra > 0 ? `${anchor} + ${extra} more` : anchor;
+          lines.push(`${inner}${node}<span class="hl">${escapeHtml(item.name)}/</span> <span class="dim">${escapeHtml(detail)}</span>`);
         } else {
           const fileName = item.files[0] || `${item.name}${item.folder === "hooks" ? ".sh" : ".md"}`;
           lines.push(`${inner}${node}${escapeHtml(fileName)}`);
